@@ -1,0 +1,70 @@
+/* Cambia el color del botón outlined logout*/
+.MuiButton-outlinedPrimary {
+    color: #404040d7 !important;
+    border-color: #404040d7 !important;
+}
+
+.MuiButton-outlinedPrimary:hover {
+    background-color: #4e5558 !important;
+    color: white !important;
+}
+
+/* Ocultar los textos predeterminados */
+.MuiTypography-h5,
+/* Título "Sign in to companyx" */
+.MuiTypography-subtitle1,
+.MuiTypography-root.MuiTypography-body2.MuiTypography-gutterBottom {
+    /* Subtítulo "Welcome, please sign in to continue" */
+    display: none;
+}
+
+/* Oculta el texto "Remember me" */
+.MuiFormControlLabel-root {
+    display: none !important;
+}
+
+body {
+    background-color: #fff;
+    /* Gris claro, por ejemplo */
+}
+
+.ClaseDeTuBoton {
+    color: #fff !important;
+    border-color: #8f2e2e !important;
+    background-color: #8f2e2e !important;
+
+    &:hover {
+        background-color: rgba(143, 46, 46, 0.5) !important;
+    }
+}
+
+
+.ClaseDeTuInput {
+    color: #fff !important;
+    border-color: #8f2e2e !important;
+}
+
+.ClaseDeTuInput:active,
+.ClaseDeTuInput:focus {
+    border-color: rgba(143, 46, 46, 0.5) !important;
+}
+
+/* Colores tabs userConfig" */
+.css-11vcyky-MuiTabs-indicator {
+    background-color: #8f2e2e !important;
+}
+
+.css-n6e6a9-MuiButtonBase-root-MuiTab-root.Mui-selected {
+    color: #8f2e2e !important;
+}
+
+.css-1tu6adf-MuiInputBase-input-MuiOutlinedInput-input {
+    color: #8f2e2e !important;
+
+}
+
+/* CSS externo o en tu archivo de estilos */
+.cssTextField .MuiOutlinedInput-root .Mui-focused fieldset {
+    border-color: #8f2e2e !important;
+    /* Color de borde en foco */
+}
