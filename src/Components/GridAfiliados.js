@@ -83,27 +83,36 @@ function GridAfiliados() {
   }));
 
   return (
-    <Box sx={{ p: 1, pr:3, maxWidth: 'xxl', mx: 'auto', width: '100%' }}>
-           <Grid container spacing={2} sx={{ mb: 4 }} >
-        <Grid size={{ xs: 8, sm: 12, md: 12 }}>
-        <Typography
-          variant='h4'
-          sx={{ color: '#8f2e2e', mb: 4, textAlign: 'center' }}
-        >
-        Registro de Afiliados
-        </Typography>
+    <Box
+      sx={{
+        p: 1,
+        pr: 3,
+        maxWidth: 'xxl',
+        mx: 'auto',
+        width: '100%',
+        transform: 'scale(0.8)',
+        transformOrigin: 'top left',
+      }}
+    >
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 4, sm: 6, md: 12 , lg :12 }}>
+          <Typography
+            variant='h4'
+            sx={{ color: '#8f2e2e', mb: 2, textAlign: 'center' }}
+          >
+            Registros de Afiliados
+          </Typography>
         </Grid>
-        </Grid>
-          <Grid container spacing={2} sx={{ mb: 4 }} >
-          <Grid size={{ xs: 8, sm: 12, md: 12, lg: 12 }}>
+      </Grid>
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 4, sm: 6, md: 12, lg: 12 }}>
           <MainGrid
             rows={rows}
             columns={mainColumns(handleEditField, handleDeleteRecord)}
             fileNameVar='Afiliados_cargados'
-
           />
-          </Grid>
-          </Grid>
+        </Grid>
+      </Grid>
     </Box>
   );
 }

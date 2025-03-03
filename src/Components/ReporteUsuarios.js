@@ -30,7 +30,8 @@ function ReporteUsuarios() {
           Authorization: `Bearer ${localStorage.getItem('jwtToken')}`,
         },
       });
-      const { estadisticas, topUsers, allUsers, casaStats, topCasas } = response.data;
+      const { estadisticas, topUsers, allUsers, casaStats, topCasas } =
+        response.data;
       setTotalUploads(estadisticas.totalRegistros);
       setAverageUploads(estadisticas.promedioRegistros);
       setUsuariosActivos(estadisticas.usuariosActivos);
@@ -71,40 +72,39 @@ function ReporteUsuarios() {
 
   // Definición de columnas para el DataGrid de Usuarios
   const userColumns = [
-    { field: 'usuario_subida', headerName: 'Usuario', width: 200 },
+    { field: 'usuario_subida', headerName: 'Usuario', flex: 1 },
     {
       field: 'registros',
       headerName: 'Registros cargados',
-      width: 150,
+      flex: 1,
       type: 'number',
-      align: 'right',
-    },
-    {
-      field: 'ultima_fecha',
-      headerName: 'Última carga',
-      width: 180,
-      valueGetter: (params) => {
-        if (!params.value) return '';
-        const date = new Date(params.value);
-        return date.toLocaleString('es-MX', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true,
-        });
-      },
-    },
+      align: 'center'    },
+      {
+        field: 'ultima_fecha',
+        headerName: 'Última carga',
+        flex: 1,
+        renderCell: (params) => {
+          if (!params.value) return '';
+          const date = new Date(params.value);
+          return date.toLocaleString('es-MX', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          });
+        }
+      }
   ];
 
   // Definición de columnas para el DataGrid de Casas
   const casaColumns = [
-    { field: 'casa', headerName: 'Casa', width: 200 },
+    { field: 'casa', headerName: 'Casa', flex: 1 },
     {
       field: 'registros',
       headerName: 'Registros',
-      width: 150,
+      flex: 1,
       type: 'number',
       align: 'right',
     },
@@ -224,8 +224,8 @@ function ReporteUsuarios() {
     <>
       <Box sx={{ p: 3, maxWidth: 'lg', mx: 'auto', width: '100%' }}>
         {/* Título */}
-        <Grid container spacing={2} sx={{ mb: 4 }} >
-          <Grid size={{ xs: 8, sm: 12, md: 12 }}>
+        <Grid container spacing={2} sx={{ mb: 4 }}>
+          <Grid size={{ xs: 12, sm: 12, md: 12 }}>
             <Typography
               variant='h4'
               sx={{ color: '#8f2e2e', mb: 4, textAlign: 'center' }}
@@ -234,67 +234,63 @@ function ReporteUsuarios() {
             </Typography>
           </Grid>
         </Grid>
-        
+
         {/* Tarjetas centradas */}
-        <Grid container spacing={2} sx={{ mb: 4 }} >
-          <Grid size={{ xs: 8, sm: 12, md: 4 }}>
+        <Grid container spacing={2} sx={{ mb: 4 }}>
+          <Grid size={{ xs: 12, sm: 12, md: 4 }}>
             <Card>
               <CardContent>
-                <Typography variant='h6' color='text.secondary' >
+                <Typography variant='h6' color='text.secondary'>
                   Total de Registros
                 </Typography>
-                <Typography variant='h4' >
+                <Typography variant='h4'>
                   {totalUploads.toLocaleString()}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 8, sm: 6, md: 4 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <Card>
               <CardContent>
-                <Typography variant='h6' color='text.secondary' >
+                <Typography variant='h6' color='text.secondary'>
                   Usuarios Activos
                 </Typography>
-                <Typography variant='h4'>
-                  {usuariosActivos}
-                </Typography>
+                <Typography variant='h4'>{usuariosActivos}</Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 8, sm: 6, md: 4 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <Card>
               <CardContent>
-                <Typography variant='h6' color='text.secondary' >
+                <Typography variant='h6' color='text.secondary'>
                   Casas Activas
                 </Typography>
-                <Typography variant='h4'>
-                  {casasActivas}
-                </Typography>
+                <Typography variant='h4'>{casasActivas}</Typography>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
 
-        <Grid container spacing={2} sx={{ mb: 4 }} >
-          <Grid size={{ xs: 8, sm: 6, md: 6 }}>
+        <Grid container spacing={2} sx={{ mb: 4 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 6 }}>
             <Card>
               <CardContent>
-                <Typography variant='h6' color='text.secondary' >
+                <Typography variant='h6' color='text.secondary'>
                   Promedio por Usuario
                 </Typography>
-                <Typography variant='h4' >
+                <Typography variant='h4'>
                   {Math.round(averageUploads).toLocaleString()}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 8, sm: 6, md: 6 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 6 }}>
             <Card>
               <CardContent>
-                <Typography variant='h6' color='text.secondary' >
+                <Typography variant='h6' color='text.secondary'>
                   Promedio por Casa
                 </Typography>
-                <Typography variant='h4' >
+                <Typography variant='h4'>
                   {Math.round(promedioPorCasa).toLocaleString()}
                 </Typography>
               </CardContent>
@@ -305,15 +301,16 @@ function ReporteUsuarios() {
         {/* Tabs para alternar entre vista de usuarios y casas */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
           <Tabs value={tabValue} onChange={handleTabChange} centered>
-            <Tab label="Reporte por Usuarios" />
-            <Tab label="Reporte por Casa" />
+            <Tab label='Reporte por Usuarios' />
+            <Tab label='Reporte por Casa' />
           </Tabs>
         </Box>
 
         {/* Contenido de las tabs */}
+
         {tabValue === 0 && (
-          <Grid container spacing={2}>
-            <Grid size={{ sm: 4, xs: 8, md: 6 }}>
+          <Grid container spacing={1}>
+            <Grid size={{ sm: 12, xs: 12, md: 6 }}>
               <Card>
                 <CardContent>
                   <Typography variant='h6' gutterBottom>
@@ -322,7 +319,7 @@ function ReporteUsuarios() {
                   <Box sx={{ height: 400, width: '100%' }}>
                     <DataGrid
                       rows={userData}
-                      columns={userColumns}
+                      columns={userColumns  }
                       loading={loading}
                       disableSelectionOnClick
                       density='compact'
@@ -338,11 +335,11 @@ function ReporteUsuarios() {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid size={{ xs: 8, md: 6 }}>
+            <Grid size={{ xs: 12, md: 6, sm: 12 }}>
               <Card>
                 <CardContent>
                   <Typography variant='h6' gutterBottom>
-                    Top 10 Usuarios por Registros Cargados
+                    Top 10 Usuarios
                   </Typography>
                   {topUsers.length > 0 ? (
                     <ReactApexChart
@@ -364,8 +361,8 @@ function ReporteUsuarios() {
         )}
 
         {tabValue === 1 && (
-          <Grid container spacing={2}>
-            <Grid size={{ sm: 4, xs: 8, md: 6 }}>
+          <Grid container spacing={1}>
+            <Grid size={{ sm: 12, xs: 12, md: 6 }}>
               <Card>
                 <CardContent>
                   <Typography variant='h6' gutterBottom>
@@ -390,11 +387,11 @@ function ReporteUsuarios() {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid size={{ xs: 8, md: 6 }}>
+            <Grid size={{ xs: 12, md: 6, sm: 12 }}>
               <Card>
                 <CardContent>
                   <Typography variant='h6' gutterBottom>
-                    Top 10 Casas por Registros
+                    Top 10 Casas
                   </Typography>
                   {topCasas.length > 0 ? (
                     <ReactApexChart

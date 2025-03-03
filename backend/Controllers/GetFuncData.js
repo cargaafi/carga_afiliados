@@ -83,13 +83,29 @@ async function getReporteCompleto(req, res) {
       casaStats,
       topCasas
     });
-    
   } catch (error) {
-    if (connection) await connection.rollback();
     console.error('Error en getReporteCompleto:', error);
+    
+    // Verificar si la conexión sigue abierta antes de hacer rollback
+    if (connection && connection.connection && !connection.connection._closing) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error('Error al hacer rollback:', rollbackError);
+        // No relanzo este error para que no oculte el error original
+      }
+    }
+    
     res.status(500).json({ error: 'Error al obtener datos del reporte' });
   } finally {
-    if (connection) connection.release();
+    // Asegurarse de liberar la conexión incluso si hay errores
+    if (connection) {
+      try {
+        connection.release();
+      } catch (releaseError) {
+        console.error('Error al liberar la conexión:', releaseError);
+      }
+    }
   }
 }
 module.exports = {

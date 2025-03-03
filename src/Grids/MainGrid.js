@@ -160,7 +160,7 @@ export default function MainGrid({ rows = [], columns = [], fileNameVar }) {
         rows={gridRows}
         columns={editableColumns}
         getRowId={(row) => row.clave_elector}
-        rowHeight={31}
+        rowHeight={35}
         density='compact'
         initialState={{
           pagination: {
