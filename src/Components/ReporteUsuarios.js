@@ -237,7 +237,6 @@ function ReporteUsuarios() {
           </Grid>
         </Grid>
 
-      
         {/* Tarjetas centradas */}
         <Grid container spacing={2} sx={{ mb: 4 }}>
           <Grid size={{ xs: 12, sm: 12, md: 4 }}>
@@ -308,7 +307,27 @@ function ReporteUsuarios() {
         </Grid>
         {/* Tabs para alternar entre vista de usuarios y casas */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-          <Tabs value={tabValue} onChange={handleTabChange} centered>
+          <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
+            centered
+            sx={{
+              '& .MuiTab-root': {
+                // Estilo general de cada tab
+                color: '#8f2e2e',
+                fontWeight: 'bold',
+              },
+              '& .MuiTab-root.Mui-selected': {
+                // Tab seleccionado
+                color: '#8f2e2e',
+              },
+              '& .MuiTabs-indicator': {
+                // Barrita inferior
+                backgroundColor: '#8f2e2e',
+              },
+            }}
+          >
+            {' '}
             <Tab label='Resumen por Usuarios' />
             <Tab label='Resumen por Casa' />
           </Tabs>
