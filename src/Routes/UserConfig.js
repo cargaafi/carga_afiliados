@@ -286,6 +286,7 @@ function UserCreate() {
                             label='Contraseña Nueva'
                             type='password'
                             required
+                            sx={{ mb: 2 }}
                             onChange={(e) => setNewPass(e.target.value)}
                             size='small'
                           />
@@ -307,28 +308,17 @@ function UserCreate() {
                   </Grid>
                 </Box>
               )}
+              <GridUsers
+                rows={listUser}
+                columnsVar={userColumns}
+                onDelete={handleDelete}
+                fileNameVar='UserList'
+                showDeleteColumn={true}
+              />{' '}
             </CardContent>
           </Card>
           <Grid container justifyContent='center' sx={{ mt: 4 }}>
             <Grid size={2}></Grid>
-          </Grid>
-        </Box>
-        <Box sx={{ mt: 5 }}>
-          <Grid container justifyContent='center'>
-            <Grid size={12}>
-              <Card>
-                <CardHeader title='Lista de Usuarios' />
-                <CardContent>
-                  <GridUsers
-                    rows={listUser}
-                    columnsVar={userColumns}
-                    onDelete={handleDelete}
-                    fileNameVar='UserList'
-                    showDeleteColumn={true}
-                  />{' '}
-                </CardContent>
-              </Card>
-            </Grid>
           </Grid>
         </Box>
       </Container>
