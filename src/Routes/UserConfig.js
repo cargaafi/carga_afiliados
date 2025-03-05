@@ -25,19 +25,20 @@ import { GoPasskeyFill } from 'react-icons/go';
 import { FaUserPlus } from 'react-icons/fa6';
 import { useAuth } from '../Components/AuthContext'; // Importa el contexto de autenticación
 import Grid from '@mui/material/Grid2'; // Usando Grid2
-
+import { alpha, styled } from '@mui/material/styles';
+import GridUsers from '../Grids/GridUsers';
 const userColumns = [
-  { field: 'id', headerName: 'ID', width: 150 },
+  { field: 'id', headerName: 'ID', flex: 1 },
   {
     field: 'user',
     headerName: 'Usuario',
-    width: 250,
+    flex: 1,
     editable: false,
   },
   {
     field: 'role',
     headerName: 'Rol',
-    width: 150,
+    flex: 1,
     editable: false,
   },
 ];
@@ -50,6 +51,25 @@ function UserCreate() {
     setValueTab(newValue);
   };
 
+  const CssTextField = styled(TextField)({
+    '& label.Mui-focused': {
+      color: '#A0AAB4',
+    },
+    '& .MuiInput-underline:after': {
+      borderBottomColor: '#8f2e2e',
+    },
+    '& .MuiOutlinedInput-root': {
+      '& fieldset': {
+        borderColor: '#8f2e2e',
+      },
+      '&:hover fieldset': {
+        borderColor: '#8f2e2e',
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: '#8f2e2e',
+      },
+    },
+  });
 
   const handleUserInput = (event) => {
     const { name, value } = event.target;
@@ -107,22 +127,19 @@ function UserCreate() {
       }
     }
   };
-  /*  
   useEffect(() => {
     getUserData();
   }, []);
-*/
   const passReset = async (e) => {
     e.preventDefault();
-     // Muestra en consola los valores que se van a enviar
+    // Muestra en consola los valores que se van a enviar
 
     try {
       await axios.put(`${API_URL}/resetPass`, {
         username: user.username,
         password: newPass,
-        
       });
-      
+
       Swal.fire({
         title: 'Contraseña Actualizada!',
         text: `Su nueva contraseña es: ${newPass}`,
@@ -136,7 +153,6 @@ function UserCreate() {
         'Fallo al actualizar su contraseña, salga del sistema e intente nuevamente',
         'error'
       );
-      
     }
   };
 
@@ -162,8 +178,10 @@ function UserCreate() {
       <Container sx={{ mb: 5 }}>
         <Box sx={{ width: '100%', mt: 5, pt: 0 }}>
           <Card>
-          <Typography variant='h3' sx={{ color: '#8f2e2e' }}>Administración de Usuarios</Typography>
-          <CardContent>
+            <Typography variant='h3' sx={{ color: '#8f2e2e' }}>
+              Administración de Usuarios
+            </Typography>
+            <CardContent>
               <Tabs value={valueTab} onChange={handleChange} centered>
                 <Tab label='Crear de Usuario' value='createUser' />
                 <Tab label='Restablecer Contraseña' value='resetPassword' />
@@ -193,7 +211,6 @@ function UserCreate() {
                                 label='Usuario'
                                 name='username'
                                 required
-                                className='cssTextField'
                                 onChange={handleUserInput}
                                 size='small'
                               />
@@ -259,8 +276,7 @@ function UserCreate() {
                     {/* Reseteo de Contraseña */}
                     <Grid size={{ xs: 12, md: 8 }}>
                       <Typography variant='h6'>
-                        Restablecer Contraseña      <p>Usuario actual: {user.username}</p>
-
+                        <p>Usuario actual: {user.username}</p>
                       </Typography>
                       <Divider sx={{ mb: 2, mt: 1 }} />
                       <Grid container spacing={2} justifyContent='center'>
@@ -299,11 +315,17 @@ function UserCreate() {
         </Box>
         <Box sx={{ mt: 5 }}>
           <Grid container justifyContent='center'>
-            <Grid size={8}>
+            <Grid size={12}>
               <Card>
                 <CardHeader title='Lista de Usuarios' />
                 <CardContent>
-                  {/*  <GridUsers rows={[]} columnsVar={[]} onDelete={() => {}} fileNameVar='UserList' showDeleteColumn={true} />*/}
+                  <GridUsers
+                    rows={listUser}
+                    columnsVar={userColumns}
+                    onDelete={handleDelete}
+                    fileNameVar='UserList'
+                    showDeleteColumn={true}
+                  />{' '}
                 </CardContent>
               </Card>
             </Grid>

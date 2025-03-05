@@ -51,9 +51,10 @@ app.use(cors());
 app.use(express.json());
 
 app.post('/loginUsers', authenticateToken, PostDataController.loginUsers__); // Login para obtener el token
-//app.get('/getUserList', authenticateToken, getDataController.listUsers__); // Lista de ususarios
+app.get('/getUserList', authenticateToken, getDataController.listUsers__); // Lista de ususarios
 app.get('/getAfiliados', getDataController.getAfiliados___); // Lista de afiliados
 app.get('/getReporteCompleto', authenticateToken, getDataController.getReporteCompleto);
+app.get('/getGraficoCasas', authenticateToken, getDataController.getGraficoCasas__);
 
 // POST y PUT functions
 app.post('/createUser', authenticateToken, PostDataController.userCreate__); //creacion de usuarios
@@ -63,6 +64,13 @@ app.put('/editField', authenticateToken, PostDataController.editField__); // Edi
 app.post('/uploadfile', upload.single('file'), ExcelController.uploadExcel);
 
 app.delete('/deleteAfiliado/:id', authenticateToken, PostDataController.deleteField__);
+
+app.delete(
+  '/deleteUser/:id',
+  authenticateToken,
+  PostDataController.deleteUser__
+); //delete user by id
+
 /*
 app.delete(
   '/deleteArchivoTxt/:id',

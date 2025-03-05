@@ -7,6 +7,7 @@ import { API_URL } from '../Config/Config';
 import { useAuth } from '../Components/AuthContext';
 import Swal from 'sweetalert2';
 import Grid from '@mui/material/Grid2';
+import GraficoCasas from './GraficoCasas';
 
 function ReporteUsuarios() {
   const [loading, setLoading] = useState(true);
@@ -78,24 +79,25 @@ function ReporteUsuarios() {
       headerName: 'Registros cargados',
       flex: 1,
       type: 'number',
-      align: 'center'    },
-      {
-        field: 'ultima_fecha',
-        headerName: 'Última carga',
-        flex: 1,
-        renderCell: (params) => {
-          if (!params.value) return '';
-          const date = new Date(params.value);
-          return date.toLocaleString('es-MX', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          });
-        }
-      }
+      align: 'center',
+    },
+    {
+      field: 'ultima_fecha',
+      headerName: 'Última carga',
+      flex: 1,
+      renderCell: (params) => {
+        if (!params.value) return '';
+        const date = new Date(params.value);
+        return date.toLocaleString('es-MX', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        });
+      },
+    },
   ];
 
   // Definición de columnas para el DataGrid de Casas
@@ -235,6 +237,12 @@ function ReporteUsuarios() {
           </Grid>
         </Grid>
 
+        <Grid container spacing={1} sx={{ mb: 4 }}>
+          <Grid size={{ sm: 12, xs: 12, md: 12 }}>
+            <GraficoCasas />
+          </Grid>
+        </Grid>
+
         {/* Tarjetas centradas */}
         <Grid container spacing={2} sx={{ mb: 4 }}>
           <Grid size={{ xs: 12, sm: 12, md: 4 }}>
@@ -319,10 +327,23 @@ function ReporteUsuarios() {
                   <Box sx={{ height: 400, width: '100%' }}>
                     <DataGrid
                       rows={userData}
-                      columns={userColumns  }
+                      columns={userColumns}
                       loading={loading}
                       disableSelectionOnClick
                       density='compact'
+                      localeText={{
+                        toolbarExport: 'Exportar',
+                        toolbarDensity: 'Densidad',
+                        toolbarColumns: 'Columnas',
+                        footerRowSelected: (count) =>
+                          count !== 1
+                            ? `${count} filas seleccionadas`
+                            : '1 fila seleccionada',
+                        footerTotalRows: 'Total de filas:',
+                        MuiTablePagination: {
+                          labelRowsPerPage: 'Filas por página', // Aquí cambias "Rows per page"
+                        },
+                      }}
                       pageSizeOptions={[10, 20, 50]}
                       initialState={{
                         pagination: { paginationModel: { pageSize: 10 } },

@@ -108,7 +108,69 @@ async function getReporteCompleto(req, res) {
     }
   }
 }
+
+
+async function getGraficoCasas__(req, res) {
+  let connection;
+  try {
+    connection = await pool.getConnection();
+
+    // Consulta para obtener el número de registros por cada casa
+    const [casaStats] = await connection.query(`
+      SELECT casa, COUNT(*) as registros
+      FROM afiliados
+      GROUP BY casa
+      ORDER BY registros DESC
+    `);
+
+    // Formato de respuesta
+    const chartData = casaStats.map((casa) => ({
+      casa: casa.casa,
+      registros: casa.registros,
+    }));
+
+    res.json({ chartData });
+  } catch (error) {
+    console.error('Error en getGraficoCasas:', error);
+    res.status(500).json({ error: 'Error al obtener datos del gráfico' });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+}
+
+async function listUsers__(req, res) {
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    
+    // Consulta para obtener todos los usuarios
+    const [result] = await connection.query(`
+      SELECT * FROM users
+    `);
+    
+    // Formato de respuesta
+    const userList = result.map((row) => ({
+      id: row.id,
+      user: row.username,
+      role: row.role,
+    }));
+    
+    res.json(userList);
+  } catch (error) {
+    console.error('Error en listUsers:', error);
+    res.status(500).json({ error: 'Error al recuperar usuarios de la base de datos' });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+}
+
 module.exports = {
   getAfiliados___,
-  getReporteCompleto
+  getGraficoCasas__,
+  getReporteCompleto,
+  listUsers__
 };
