@@ -237,12 +237,7 @@ function ReporteUsuarios() {
           </Grid>
         </Grid>
 
-        <Grid container spacing={1} sx={{ mb: 4 }}>
-          <Grid size={{ sm: 12, xs: 12, md: 12 }}>
-            <GraficoCasas />
-          </Grid>
-        </Grid>
-
+      
         {/* Tarjetas centradas */}
         <Grid container spacing={2} sx={{ mb: 4 }}>
           <Grid size={{ xs: 12, sm: 12, md: 4 }}>
@@ -306,11 +301,16 @@ function ReporteUsuarios() {
           </Grid>
         </Grid>
 
+        <Grid container spacing={1} sx={{ mb: 4 }}>
+          <Grid size={{ sm: 12, xs: 12, md: 12 }}>
+            <GraficoCasas />
+          </Grid>
+        </Grid>
         {/* Tabs para alternar entre vista de usuarios y casas */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
           <Tabs value={tabValue} onChange={handleTabChange} centered>
-            <Tab label='Reporte por Usuarios' />
-            <Tab label='Reporte por Casa' />
+            <Tab label='Resumen por Usuarios' />
+            <Tab label='Resumen por Casa' />
           </Tabs>
         </Box>
 

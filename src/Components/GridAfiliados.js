@@ -85,8 +85,8 @@ function GridAfiliados() {
   return (
     <Box
       sx={{
-        p: 1,
-        pr: 3,
+        p: 5,
+        pr: 1,
         maxWidth: 'xxl',
         mx: 'auto',
         width: '100%',

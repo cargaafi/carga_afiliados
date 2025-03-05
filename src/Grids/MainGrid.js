@@ -38,14 +38,19 @@ function CustomToolbar({ fileNameVar }) {
       <GridToolbarExport
         csvOptions={{ fileName: fileNameVar, utf8WithBom: true }}
       />
-      <GridToolbarDensitySelector />
-      <GridToolbarColumnsButton />
       <GridToolbarFilterButton />
     </GridToolbarContainer>
   );
 }
 
-export default function MainGrid({ rows = [], columns = [], fileNameVar }) {
+export default function MainGrid({ 
+  rows = [], 
+  columns = [], 
+  fileNameVar,
+  idField = 'clave_elector', // Nuevo prop para especificar qué campo usar como ID
+  showActions = true, // Nuevo prop para controlar si mostrar o no las acciones
+  defaultPageSize = 20 // Nuevo prop para especificar el tamaño de página predeterminado
+}) {
   // Estado local para las filas y para el modelo de edición de fila
   const [gridRows, setGridRows] = React.useState(rows);
   const [rowModesModel, setRowModesModel] = React.useState({});
@@ -77,7 +82,7 @@ export default function MainGrid({ rows = [], columns = [], fileNameVar }) {
 
   const handleDeleteClick = (id) => () => {
     setGridRows((prevRows) =>
-      prevRows.filter((row) => row.clave_elector !== id)
+      prevRows.filter((row) => row[idField] !== id)
     );
   };
 
@@ -86,9 +91,9 @@ export default function MainGrid({ rows = [], columns = [], fileNameVar }) {
       ...prev,
       [id]: { mode: GridRowModes.View, ignoreModifications: true },
     }));
-    const editedRow = gridRows.find((row) => row.clave_elector === id);
+    const editedRow = gridRows.find((row) => row[idField] === id);
     if (editedRow?.isNew) {
-      setGridRows((prev) => prev.filter((row) => row.clave_elector !== id));
+      setGridRows((prev) => prev.filter((row) => row[idField] !== id));
     }
   };
 
@@ -98,7 +103,7 @@ export default function MainGrid({ rows = [], columns = [], fileNameVar }) {
     const updatedRow = { ...newRow, isNew: false };
     setGridRows((prevRows) =>
       prevRows.map((row) =>
-        row.clave_elector === newRow.clave_elector ? updatedRow : row
+        row[idField] === newRow[idField] ? updatedRow : row
       )
     );
     return updatedRow;
@@ -108,70 +113,72 @@ export default function MainGrid({ rows = [], columns = [], fileNameVar }) {
     setRowModesModel(newModel);
   };
 
-  // Agregar (o fusionar) una columna de acciones para la edición
-  const editableColumns = [
-    ...columns,
-    {
-      field: 'actions',
-      type: 'actions',
-      headerName: 'Acciones',
-      width: 100,
-      getActions: (params) => {
-        const isInEditMode =
-          rowModesModel[params.id]?.mode === GridRowModes.Edit;
-        if (isInEditMode) {
-          return [
-            <GridActionsCellItem
-              icon={<SaveIcon />}
-              label='Guardar'
-              onClick={handleSaveClick(params.id)}
-              color='inherit'
-            />,
-            <GridActionsCellItem
-              icon={<CancelIcon />}
-              label='Cancelar'
-              onClick={handleCancelClick(params.id)}
-              color='inherit'
-            />,
-          ];
-        }
-        return [
-          <GridActionsCellItem
-            icon={<EditIcon />}
-            label='Editar'
-            onClick={handleEditClick(params.id)}
-            color='inherit'
-          />,
-          <GridActionsCellItem
-            icon={<DeleteIcon />}
-            label='Eliminar'
-            onClick={handleDeleteClick(params.id)}
-            color='inherit'
-          />,
-        ];
-      },
-    },
-  ];
+  // Agregar (o fusionar) una columna de acciones para la edición, solo si showActions es true
+  const editableColumns = showActions 
+    ? [
+        ...columns,
+        {
+          field: 'actions',
+          type: 'actions',
+          headerName: 'Acciones',
+          width: 100,
+          getActions: (params) => {
+            const isInEditMode =
+              rowModesModel[params.id]?.mode === GridRowModes.Edit;
+            if (isInEditMode) {
+              return [
+                <GridActionsCellItem
+                  icon={<SaveIcon />}
+                  label='Guardar'
+                  onClick={handleSaveClick(params.id)}
+                  color='inherit'
+                />,
+                <GridActionsCellItem
+                  icon={<CancelIcon />}
+                  label='Cancelar'
+                  onClick={handleCancelClick(params.id)}
+                  color='inherit'
+                />,
+              ];
+            }
+            return [
+              <GridActionsCellItem
+                icon={<EditIcon />}
+                label='Editar'
+                onClick={handleEditClick(params.id)}
+                color='inherit'
+              />,
+              <GridActionsCellItem
+                icon={<DeleteIcon />}
+                label='Eliminar'
+                onClick={handleDeleteClick(params.id)}
+                color='inherit'
+              />,
+            ];
+          },
+        },
+      ]
+    : columns;
 
   return (
     <ThemeProvider theme={theme}>
       <DataGrid
-        editMode='row'
+        editMode={showActions ? 'row' : undefined}
         rows={gridRows}
         columns={editableColumns}
-        getRowId={(row) => row.clave_elector}
+        getRowId={(row) => row[idField]} // Usar el campo especificado como ID
         rowHeight={35}
         density='compact'
         initialState={{
           pagination: {
-            paginationModel: { pageSize: 20, page: 0 },
+            paginationModel: { pageSize: defaultPageSize, page: 0 },
           },
         }}
         pageSizeOptions={[5, 10, 20, 50, 100]}
         rowModesModel={rowModesModel}
         onRowModesModelChange={handleRowModesModelChange}
         onRowEditStop={handleRowEditStop}
-        processRowUpdate={processRowUpdate}
+        processRowUpdate={showActions ? processRowUpdate : undefined}
         slots={{
           toolbar: (props) => (
             <CustomToolbar {...props} fileNameVar={fileNameVar} />
