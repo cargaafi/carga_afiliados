@@ -22,11 +22,147 @@ import CancelIcon from '@mui/icons-material/Close';
 // Tema para DataGrid con idioma español
 const theme = createTheme(
   {
+    components: {
+      MuiDataGrid: {
+        styleOverrides: {
+          columnHeader: {
+            backgroundColor: '#8f2e2e', // Burdeos para los headers
+            '& .MuiSvgIcon-root': {
+              color: 'white'
+            }
+          },
+          columnHeaderTitle: {
+            color: 'white',
+          },
+          columnHeaderSortIcon: {
+            color: 'white',
+          },
+          // Para el modo oscuro, asegurar texto blanco
+          panel: {
+            '&.MuiDataGrid-panelDark, .MuiDataGrid-filterPanelDark': {
+              '& .MuiFormLabel-root': {
+                color: 'white', // Etiquetas blancas en modo oscuro
+              },
+              '& .MuiInputBase-input': {
+                color: 'white', // Texto blanco en inputs en modo oscuro
+              },
+              '& .MuiInputLabel-root': {
+                color: 'white', // Etiquetas blancas en modo oscuro
+              },
+              '& .MuiTypography-root': {
+                color: 'white', // Todo texto en blanco en modo oscuro
+              }
+            }
+          },
+          // Modo oscuro específico
+          root: {
+            '&.MuiDataGrid-root--darkMode': {
+              '& .MuiDataGrid-cell': {
+                color: 'white',
+              },
+              '& .MuiTablePagination-root': {
+                color: 'white',
+              },
+              '& .MuiInputBase-input': {
+                color: 'white',
+              }
+            }
+          }
+        },
+      },
+      // Modificar las etiquetas (MuiInputLabel)
+      MuiInputLabel: {
+        styleOverrides: {
+          root: {
+            color: '#8f2e2e', // Gris oscuro para todas las etiquetas
+            '&.Mui-focused': {
+              color: '#8f2e2e', // Mantener el color cuando está enfocado
+            },
+            '&.MuiFormLabel-filled': {
+              color: '#8f2e2e', // Mantener el color cuando está lleno
+            },
+            // Para modo oscuro
+            '.MuiDataGrid-panelDark &, .Mui-darkMode &': {
+              color: 'white',
+            }
+          }
+        }
+      },
+      // Modificar el Badge
+      MuiBadge: {
+        styleOverrides: {
+          badge: {
+            backgroundColor: '#8f2e2e', // Burdeos para el badge
+            color: 'white', // Texto blanco en el badge
+          }
+        }
+      },
+      // Asegurar texto visible en filtros
+      MuiFormLabel: {
+        styleOverrides: {
+          root: {
+            color: '#8f2e2e', // Gris oscuro para etiquetas de formulario
+            '&.Mui-focused': {
+              color: '#8f2e2e', // Mantener color cuando está enfocado
+            },
+            // Para modo oscuro
+            '.MuiDataGrid-dark &, .MuiDataGrid-panelDark &': {
+              color: 'white',
+            }
+          }
+        }
+      },
+      // Modificar el input para el filtro
+      MuiInput: {
+        styleOverrides: {
+          input: {
+            color: '#8f2e2e', // Gris oscuro para el texto
+            // Para modo oscuro
+            '.Mui-darkMode &, .MuiDataGrid-panelDark &': {
+              color: 'white',
+            }
+          },
+          root: {
+            '&:before': {
+              borderBottomColor: '#8f2e2e',
+            },
+            '&:hover:not(.Mui-disabled):before': {
+              borderBottomColor: '#8f2e2e',
+            },
+            '&.Mui-focused:after': {
+              borderBottomColor: '#8f2e2e',
+            }
+          }
+        }
+      },
+      // Para los menús desplegables en filtros
+      MuiMenu: {
+        styleOverrides: {
+          paper: {
+            '& .MuiMenuItem-root': {
+              color: '#333333', // Texto en menús en gris oscuro
+            },
+            // Para modo oscuro
+            '&.MuiMenu-paper-darkMode .MuiMenuItem-root': {
+              color: 'white',
+            }
+          }
+        }
+      }
+    },
+    // Configuración de la paleta de colores
     palette: {
-      primary: { main: '#1976d2' },
+      primary: {
+        main: '#8f2e2e', // Burdeos como color principal
+        dark: '#6e2323', // Versión más oscura para estados hover
+      },
+      text: {
+        primary: '#333333', // Texto primario en gris oscuro
+      },
+      mode: 'light', // Modo por defecto (puede cambiar a 'dark' si es necesario)
     },
   },
-  esES
+  esES // Localización en español
 );
 
 // Ejemplo de CustomToolbar para exportar y demás
@@ -49,7 +185,8 @@ export default function MainGrid({
   fileNameVar,
   idField = 'clave_elector', // Nuevo prop para especificar qué campo usar como ID
   showActions = true, // Nuevo prop para controlar si mostrar o no las acciones
-  defaultPageSize = 20 // Nuevo prop para especificar el tamaño de página predeterminado
+  defaultPageSize = 20, // Nuevo prop para especificar el tamaño de página predeterminado
+  loading = false,
 }) {
   // Estado local para las filas y para el modelo de edición de fila
   const [gridRows, setGridRows] = React.useState(rows);
@@ -168,6 +305,13 @@ export default function MainGrid({
         columns={editableColumns}
         getRowId={(row) => row[idField]} // Usar el campo especificado como ID
         rowHeight={35}
+        loading={loading}
+        slotProps={{
+          loadingOverlay: {
+            variant: 'linear-progress',
+            noRowsVariant: 'linear-progress',
+          },
+        }}
         density='compact'
         initialState={{
           pagination: {

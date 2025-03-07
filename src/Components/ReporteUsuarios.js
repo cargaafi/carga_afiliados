@@ -8,7 +8,9 @@ import { useAuth } from '../Components/AuthContext';
 import Swal from 'sweetalert2';
 import Grid from '@mui/material/Grid2';
 import GraficoCasas from './GraficoCasas';
-
+import { esES } from '@mui/x-data-grid/locales';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import TreemapCasas from './TreemapCasas';
 function ReporteUsuarios() {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState([]); // allUsers desde getReporteCompleto
@@ -21,7 +23,154 @@ function ReporteUsuarios() {
   const [casasActivas, setCasasActivas] = useState(0);
   const [promedioPorCasa, setPromedioPorCasa] = useState(0);
   const [tabValue, setTabValue] = useState(0);
+  const [tabValueGrafico, setTabValueGrafico] = useState(0);
+
   const { user } = useAuth();
+  // Tema para DataGrid con idioma español
+  const theme = createTheme(
+    {
+      components: {
+        MuiDataGrid: {
+          styleOverrides: {
+            columnHeader: {
+              backgroundColor: '#8f2e2e', // Burdeos para los headers
+              '& .MuiSvgIcon-root': {
+                color: 'white',
+              },
+            },
+            columnHeaderTitle: {
+              color: 'white',
+            },
+            columnHeaderSortIcon: {
+              color: 'white',
+            },
+            // Para el modo oscuro, asegurar texto blanco
+            panel: {
+              '&.MuiDataGrid-panelDark, .MuiDataGrid-filterPanelDark': {
+                '& .MuiFormLabel-root': {
+                  color: 'white', // Etiquetas blancas en modo oscuro
+                },
+                '& .MuiInputBase-input': {
+                  color: 'white', // Texto blanco en inputs en modo oscuro
+                },
+                '& .MuiInputLabel-root': {
+                  color: 'white', // Etiquetas blancas en modo oscuro
+                },
+                '& .MuiTypography-root': {
+                  color: 'white', // Todo texto en blanco en modo oscuro
+                },
+              },
+            },
+            // Modo oscuro específico
+            root: {
+              '&.MuiDataGrid-root--darkMode': {
+                '& .MuiDataGrid-cell': {
+                  color: 'white',
+                },
+                '& .MuiTablePagination-root': {
+                  color: 'white',
+                },
+                '& .MuiInputBase-input': {
+                  color: 'white',
+                },
+              },
+            },
+          },
+        },
+        // Modificar las etiquetas (MuiInputLabel)
+        MuiInputLabel: {
+          styleOverrides: {
+            root: {
+              color: '#8f2e2e', // Gris oscuro para todas las etiquetas
+              '&.Mui-focused': {
+                color: '#8f2e2e', // Mantener el color cuando está enfocado
+              },
+              '&.MuiFormLabel-filled': {
+                color: '#8f2e2e', // Mantener el color cuando está lleno
+              },
+              // Para modo oscuro
+              '.MuiDataGrid-panelDark &, .Mui-darkMode &': {
+                color: 'white',
+              },
+            },
+          },
+        },
+        // Modificar el Badge
+        MuiBadge: {
+          styleOverrides: {
+            badge: {
+              backgroundColor: '#8f2e2e', // Burdeos para el badge
+              color: 'white', // Texto blanco en el badge
+            },
+          },
+        },
+        // Asegurar texto visible en filtros
+        MuiFormLabel: {
+          styleOverrides: {
+            root: {
+              color: '#8f2e2e', // Gris oscuro para etiquetas de formulario
+              '&.Mui-focused': {
+                color: '#8f2e2e', // Mantener color cuando está enfocado
+              },
+              // Para modo oscuro
+              '.MuiDataGrid-dark &, .MuiDataGrid-panelDark &': {
+                color: 'white',
+              },
+            },
+          },
+        },
+        // Modificar el input para el filtro
+        MuiInput: {
+          styleOverrides: {
+            input: {
+              color: '#8f2e2e', // Gris oscuro para el texto
+              // Para modo oscuro
+              '.Mui-darkMode &, .MuiDataGrid-panelDark &': {
+                color: 'white',
+              },
+            },
+            root: {
+              '&:before': {
+                borderBottomColor: '#8f2e2e',
+              },
+              '&:hover:not(.Mui-disabled):before': {
+                borderBottomColor: '#8f2e2e',
+              },
+              '&.Mui-focused:after': {
+                borderBottomColor: '#8f2e2e',
+              },
+            },
+          },
+        },
+        // Para los menús desplegables en filtros
+        MuiMenu: {
+          styleOverrides: {
+            paper: {
+              '& .MuiMenuItem-root': {
+                color: '#333333', // Texto en menús en gris oscuro
+              },
+              // Para modo oscuro
+              '&.MuiMenu-paper-darkMode .MuiMenuItem-root': {
+                color: 'white',
+              },
+            },
+          },
+        },
+      },
+      // Configuración de la paleta de colores
+      palette: {
+        primary: {
+          main: '#8f2e2e', // Burdeos como color principal
+          dark: '#6e2323', // Versión más oscura para estados hover
+        },
+        text: {
+          primary: '#333333', // Texto primario en gris oscuro
+        },
+        mode: 'light', // Modo por defecto (puede cambiar a 'dark' si es necesario)
+      },
+    },
+    esES // Localización en español
+  );
 
   // Función que hace la llamada única al backend
   const getReporteCompleto = async () => {
@@ -71,6 +220,11 @@ function ReporteUsuarios() {
     setTabValue(newValue);
   };
 
+  const handleTabChangeGrafico = (event, newValue) => {
+    setTabValueGrafico(newValue);
+  };
+
+
   // Definición de columnas para el DataGrid de Usuarios
   const userColumns = [
     { field: 'usuario_subida', headerName: 'Usuario', flex: 1 },
@@ -88,14 +242,17 @@ function ReporteUsuarios() {
       renderCell: (params) => {
         if (!params.value) return '';
         const date = new Date(params.value);
-        return date.toLocaleString('es-MX', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true,
-        });
+        return new Date(date.getTime() - 6 * 60 * 60 * 1000).toLocaleString(
+          'es-MX',
+          {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+          }
+        );
       },
     },
   ];
@@ -300,11 +457,56 @@ function ReporteUsuarios() {
           </Grid>
         </Grid>
 
-        <Grid container spacing={1} sx={{ mb: 4 }}>
-          <Grid size={{ sm: 12, xs: 12, md: 12 }}>
-            <GraficoCasas />
-          </Grid>
-        </Grid>
+        {/* Tabs para alternar entre diferentes tipos de gráficos */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+        <Tabs
+          value={tabValueGrafico}
+          onChange={handleTabChangeGrafico}
+          centered
+          sx={{
+            '& .MuiTab-root': {
+              // Estilo general de cada tab
+              color: '#8f2e2e',
+              fontWeight: 'bold',
+            },
+            '& .MuiTab-root.Mui-selected': {
+              // Tab seleccionado
+              color: '#8f2e2e',
+            },
+            '& .MuiTabs-indicator': {
+              // Barrita inferior
+              backgroundColor: '#8f2e2e',
+            },
+          }}
+        >
+          <Tab label='Vista Grafico' />
+          <Tab label='Vista Grilla' />
+        </Tabs>
+      </Box>
+
+      {/* Contenido de las tabs */}
+      <Card>
+        <CardContent>
+          {tabValueGrafico === 0 && (
+            <>
+              <Typography variant='h6' gutterBottom>
+                Distribución de Registros por Casa
+              </Typography>
+              <TreemapCasas />
+            </>
+          )}
+
+          {tabValueGrafico === 1 && (
+            <>
+              <Typography variant='h6' gutterBottom>
+                Registros por Casa
+              </Typography>
+              <GraficoCasas />
+            </>
+          )}
+        </CardContent>
+      </Card>
+    
         {/* Tabs para alternar entre vista de usuarios y casas */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
           <Tabs
@@ -344,33 +546,35 @@ function ReporteUsuarios() {
                     Listado de Usuarios
                   </Typography>
                   <Box sx={{ height: 400, width: '100%' }}>
-                    <DataGrid
-                      rows={userData}
-                      columns={userColumns}
-                      loading={loading}
-                      disableSelectionOnClick
-                      density='compact'
-                      localeText={{
-                        toolbarExport: 'Exportar',
-                        toolbarDensity: 'Densidad',
-                        toolbarColumns: 'Columnas',
-                        footerRowSelected: (count) =>
-                          count !== 1
-                            ? `${count} filas seleccionadas`
-                            : '1 fila seleccionada',
-                        footerTotalRows: 'Total de filas:',
-                        MuiTablePagination: {
-                          labelRowsPerPage: 'Filas por página', // Aquí cambias "Rows per page"
-                        },
-                      }}
-                      pageSizeOptions={[10, 20, 50]}
-                      initialState={{
-                        pagination: { paginationModel: { pageSize: 10 } },
-                        sorting: {
-                          sortModel: [{ field: 'registros', sort: 'desc' }],
-                        },
-                      }}
-                    />
+                    <ThemeProvider theme={theme}>
+                      <DataGrid
+                        rows={userData}
+                        columns={userColumns}
+                        loading={loading}
+                        disableSelectionOnClick
+                        density='compact'
+                        localeText={{
+                          toolbarExport: 'Exportar',
+                          toolbarDensity: 'Densidad',
+                          toolbarColumns: 'Columnas',
+                          footerRowSelected: (count) =>
+                            count !== 1
+                              ? `${count} filas seleccionadas`
+                              : '1 fila seleccionada',
+                          footerTotalRows: 'Total de filas:',
+                          MuiTablePagination: {
+                            labelRowsPerPage: 'Filas por página', // Aquí cambias "Rows per page"
+                          },
+                        }}
+                        pageSizeOptions={[10, 20, 50]}
+                        initialState={{
+                          pagination: { paginationModel: { pageSize: 10 } },
+                          sorting: {
+                            sortModel: [{ field: 'registros', sort: 'desc' }],
+                          },
+                        }}
+                      />
+                    </ThemeProvider>
                   </Box>
                 </CardContent>
               </Card>
@@ -409,20 +613,22 @@ function ReporteUsuarios() {
                     Listado de Casas
                   </Typography>
                   <Box sx={{ height: 400, width: '100%' }}>
-                    <DataGrid
-                      rows={casaData}
-                      columns={casaColumns}
-                      loading={loading}
-                      disableSelectionOnClick
-                      density='compact'
-                      pageSizeOptions={[10, 20, 50]}
-                      initialState={{
-                        pagination: { paginationModel: { pageSize: 10 } },
-                        sorting: {
-                          sortModel: [{ field: 'registros', sort: 'desc' }],
-                        },
-                      }}
-                    />
+                    <ThemeProvider theme={theme}>
+                      <DataGrid
+                        rows={casaData}
+                        columns={casaColumns}
+                        loading={loading}
+                        disableSelectionOnClick
+                        density='compact'
+                        pageSizeOptions={[10, 20, 50]}
+                        initialState={{
+                          pagination: { paginationModel: { pageSize: 10 } },
+                          sorting: {
+                            sortModel: [{ field: 'registros', sort: 'desc' }],
+                          },
+                        }}
+                      />
+                    </ThemeProvider>
                   </Box>
                 </CardContent>
               </Card>

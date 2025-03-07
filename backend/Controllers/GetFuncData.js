@@ -8,7 +8,6 @@ async function getAfiliados___(req, res) {
   let connection;
   console.log('Inicio de getAfiliados___');
   const usuario = req.query.usuario ?? '';
-  console.log('Usuario recibido:', usuario);
 
   try {
       console.log('Obteniendo conexión...');
@@ -16,8 +15,8 @@ async function getAfiliados___(req, res) {
       
       console.log('Ejecutando query...');
       const [rows] = await connection.query(
-          'SELECT * FROM afiliados WHERE usuario_subida = ?',
-          [usuario]
+          'SELECT * FROM afiliados',
+          
       );
       console.log('Rows obtenidas:', rows.length);
       res.json(rows);

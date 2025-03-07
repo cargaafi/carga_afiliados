@@ -11,9 +11,12 @@ import Grid from '@mui/material/Grid2';
 function GridAfiliados() {
   const [carga, setCarga] = useState([]);
   const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
 
   // Función para obtener los datos de afiliados
   const getCargaData__ = async () => {
+    setLoading(true);
+
     try {
       const response = await axios.get(`${API_URL}/getAfiliados`, {
         params: { usuario: user.username },
@@ -30,6 +33,8 @@ function GridAfiliados() {
         console.error(err);
         Swal.fire('Ooops', 'Unable to get data', 'error');
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -95,7 +100,7 @@ function GridAfiliados() {
       }}
     >
       <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 4, sm: 6, md: 12 , lg :12 }}>
+        <Grid size={{ xs: 4, sm: 6, md: 12, lg: 12 }}>
           <Typography
             variant='h4'
             sx={{ color: '#8f2e2e', mb: 2, textAlign: 'center' }}
@@ -110,6 +115,8 @@ function GridAfiliados() {
             rows={rows}
             columns={mainColumns(handleEditField, handleDeleteRecord)}
             fileNameVar='Afiliados_cargados'
+            showActions={false}
+            loading={loading}
           />
         </Grid>
       </Grid>
