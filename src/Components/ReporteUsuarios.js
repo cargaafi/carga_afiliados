@@ -224,7 +224,6 @@ function ReporteUsuarios() {
     setTabValueGrafico(newValue);
   };
 
-
   // Definición de columnas para el DataGrid de Usuarios
   const userColumns = [
     { field: 'usuario_subida', headerName: 'Usuario', flex: 1 },
@@ -458,55 +457,66 @@ function ReporteUsuarios() {
         </Grid>
 
         {/* Tabs para alternar entre diferentes tipos de gráficos */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs
-          value={tabValueGrafico}
-          onChange={handleTabChangeGrafico}
-          centered
-          sx={{
-            '& .MuiTab-root': {
-              // Estilo general de cada tab
-              color: '#8f2e2e',
-              fontWeight: 'bold',
-            },
-            '& .MuiTab-root.Mui-selected': {
-              // Tab seleccionado
-              color: '#8f2e2e',
-            },
-            '& .MuiTabs-indicator': {
-              // Barrita inferior
-              backgroundColor: '#8f2e2e',
-            },
-          }}
-        >
-          <Tab label='Vista Grafico' />
-          <Tab label='Vista Grilla' />
-        </Tabs>
-      </Box>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+          <Tabs
+            value={tabValueGrafico}
+            onChange={handleTabChangeGrafico}
+            centered
+            sx={{
+              '& .MuiTab-root': {
+                // Estilo general de cada tab
+                color: '#8f2e2e',
+                fontWeight: 'bold',
+              },
+              '& .MuiTab-root.Mui-selected': {
+                // Tab seleccionado
+                color: '#8f2e2e',
+              },
+              '& .MuiTabs-indicator': {
+                // Barrita inferior
+                backgroundColor: '#8f2e2e',
+              },
+            }}
+          >
+            <Tab label='Vista Grafico' />
+            <Tab label='Vista Grilla' />
+          </Tabs>
+        </Box>
+        {/* Contenido de las tabs */}
 
-      {/* Contenido de las tabs */}
-      <Card>
-        <CardContent>
-          {tabValueGrafico === 0 && (
-            <>
-              <Typography variant='h6' gutterBottom>
-                Distribución de Registros por Casa
-              </Typography>
-              <TreemapCasas />
-            </>
-          )}
+        {tabValueGrafico === 0 && (
+          <>
+            <Grid container spacing={1}>
+              <Grid size={{ sm: 12, xs: 12, md: 12 }}>
+                <Card>
+                  <CardContent>
+                    <Typography variant='h6' gutterBottom>
+                      Distribución de Registros por Casa
+                    </Typography>
+                    <TreemapCasas />
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          </>
+        )}
 
-          {tabValueGrafico === 1 && (
-            <>
-              <Typography variant='h6' gutterBottom>
-                Registros por Casa
-              </Typography>
-              <GraficoCasas />
-            </>
-          )}
-        </CardContent>
-      </Card>
-    
+        {tabValueGrafico === 1 && (
+          <Grid container spacing={1}>
+            <Grid size={{ sm: 12, xs: 12, md: 12 }}>
+              <Card>
+                <CardContent>
+                  {' '}
+                  <Typography variant='h6' gutterBottom>
+                    Registros por Casa
+                  </Typography>
+                  <GraficoCasas />
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        )}
+
         {/* Tabs para alternar entre vista de usuarios y casas */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
           <Tabs
