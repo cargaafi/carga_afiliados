@@ -19,7 +19,7 @@ const TreemapCasas = () => {
             zoomin: true,
             zoomout: true,
             pan: true,
-            reset: true
+            reset: true,
           },
           export: {
             csv: {
@@ -28,17 +28,17 @@ const TreemapCasas = () => {
               headerCategory: 'Casa',
               headerValue: 'Registros',
               dateFormatter(timestamp) {
-                return new Date(timestamp).toDateString()
-              }
+                return new Date(timestamp).toDateString();
+              },
             },
             svg: {
               filename: 'registros-por-casa',
             },
             png: {
               filename: 'registros-por-casa',
-            }
+            },
           },
-        }
+        },
       },
       title: {
         text: 'Registros por Casa',
@@ -48,33 +48,46 @@ const TreemapCasas = () => {
       plotOptions: {
         bar: {
           horizontal: false,
-          columnWidth: '70%',
+          columnWidth: '80%',
           distributed: true,
           dataLabels: {
             position: 'top',
+            orientation: 'vertical',
           },
         },
       },
       colors: [
-        '#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0',
-        '#546E7A', '#26A69A', '#D10CE8', '#8B5CF6', '#34D399',
-        '#F43F5E', '#F97316', '#FACC15', '#4ADE80', '#60A5FA'
+        '#008FFB',
+        '#00E396',
+        '#FEB019',
+        '#FF4560',
+        '#775DD0',
+        '#546E7A',
+        '#26A69A',
+        '#D10CE8',
+        '#8B5CF6',
+        '#34D399',
+        '#F43F5E',
+        '#F97316',
+        '#FACC15',
+        '#4ADE80',
+        '#60A5FA',
       ],
       dataLabels: {
         enabled: true,
-        formatter: function(val) {
+        formatter: function (val) {
           return val;
         },
-        offsetY: -20,
+        offsetY: 10,
         style: {
-          fontSize: '12px',
+          fontSize: '18px',
           fontWeight: 'bold',
-          colors: ["#000"]
-        }
+          colors: ['#000'],
+        },
       },
       stroke: {
         width: 1,
-        colors: ['#fff']
+        colors: ['#fff'],
       },
       grid: {
         show: true,
@@ -83,19 +96,19 @@ const TreemapCasas = () => {
         position: 'back',
         xaxis: {
           lines: {
-            show: false
-          }
+            show: false,
+          },
         },
         yaxis: {
           lines: {
-            show: true
-          }
+            show: true,
+          },
         },
       },
       xaxis: {
         categories: [],
         labels: {
-          formatter: function(val) {
+          formatter: function (val) {
             return 'Casa ' + val;
           },
           style: {
@@ -106,7 +119,7 @@ const TreemapCasas = () => {
           rotateAlways: false,
         },
         title: {
-          text: 'Casa'
+          text: 'Casa',
         },
         axisBorder: {
           show: true,
@@ -117,28 +130,29 @@ const TreemapCasas = () => {
       },
       yaxis: {
         title: {
-          text: 'Número de Registros'
+          text: '',
         },
         labels: {
-          formatter: function(val) {
+          
+          formatter: function (val) {
             // Formateamos números grandes para hacerlos más legibles
             if (val >= 1000) {
               return (val / 1000).toFixed(val >= 10000 ? 0 : 1) + 'K';
             }
             return val;
-          }
-        }
+          },
+        },
       },
       tooltip: {
         y: {
-          formatter: function(value) {
+          formatter: function (value) {
             return value + ' registros';
-          }
-        }
+          },
+        },
       },
       legend: {
-        show: false
-      }
+        show: false,
+      },
     },
   });
 
@@ -147,33 +161,35 @@ const TreemapCasas = () => {
       try {
         const response = await axios.get(`${API_URL}/getGraficoCasas`);
         const data = response.data.chartData;
-  
+
         // Ordenar datos de mayor a menor
         data.sort((a, b) => b.registros - a.registros);
-        
+
         // Extraer categorías (casas) y valores (registros)
-        const categories = data.map(item => item.casa);
-        const values = data.map(item => item.registros);
-        
+        const categories = data.map((item) => item.casa);
+        const values = data.map((item) => item.registros);
+
         setChartData((prev) => ({
           ...prev,
-          series: [{
-            name: 'Registros',
-            data: values
-          }],
+          series: [
+            {
+              name: 'Registros',
+              data: values,
+            },
+          ],
           options: {
             ...prev.options,
             xaxis: {
               ...prev.options.xaxis,
-              categories: categories
-            }
-          }
+              categories: categories,
+            },
+          },
         }));
       } catch (error) {
         console.error('Error al obtener datos del gráfico:', error);
       }
     };
-  
+
     fetchData();
   }, []);
 
@@ -182,7 +198,7 @@ const TreemapCasas = () => {
       <Chart
         options={chartData.options}
         series={chartData.series}
-        type="bar"
+        type='bar'
         height={500}
       />
     </div>

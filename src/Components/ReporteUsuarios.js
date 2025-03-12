@@ -491,7 +491,7 @@ function ReporteUsuarios() {
                 <Card>
                   <CardContent>
                     <Typography variant='h6' gutterBottom>
-                      Distribución de Registros por Casa
+                      Grafico Casas
                     </Typography>
                     <TreemapCasas />
                   </CardContent>
