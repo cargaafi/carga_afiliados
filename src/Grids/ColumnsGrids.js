@@ -23,7 +23,7 @@ export const mainColumns = () => [
       });
     }
   },
-  { field: 'usuario_subida', headerName: 'Usuario Subida', width: 120 }
+  { field: 'usuario_subida', headerName: 'Usuario Subida', width: 150 }
 ];
 
 export const userColumns = [

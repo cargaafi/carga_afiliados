@@ -12,35 +12,42 @@ function GridAfiliados() {
   const [carga, setCarga] = useState([]);
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
 
-  // Función para obtener los datos de afiliados
-  const getCargaData__ = async () => {
+  // Estado para manejar la paginación
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 20, // Cantidad de registros por página
+  });
+
+  const getCargaData__ = async (page = 0, pageSize = 20) => {
     setLoading(true);
-
     try {
+      console.log(`Solicitando página ${page + 1} con ${pageSize} registros`);
       const response = await axios.get(`${API_URL}/getAfiliados`, {
-        params: { usuario: user.username },
+        params: { usuario: user.username, page: page + 1, limit: pageSize }, // Paginación
       });
-      setCarga(response.data);
+
+      console.log("Respuesta del servidor:", {
+        dataLength: response.data.data.length,
+        total: response.data.total
+      });
+
+      setCarga(response.data.data);
+      setTotal(response.data.total);
     } catch (err) {
-      if (err.response && err.response.status === 403) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Mensaje de seguridad',
-          text: 'Su sesión ha expirado, por favor inicie sesión nuevamente',
-        });
-      } else {
-        console.error(err);
-        Swal.fire('Ooops', 'Unable to get data', 'error');
-      }
+      console.error("Error al obtener datos:", err);
+      Swal.fire('Ooops', 'Unable to get data', 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  // Un SOLO useEffect para manejar los cambios de paginación
   useEffect(() => {
-    getCargaData__();
-  }, []);
+    getCargaData__(paginationModel.page, paginationModel.pageSize);
+  }, [paginationModel.page, paginationModel.pageSize]);
+
 
   // Función para editar un campo de un registro
   const handleEditField = async (id, field, newValue) => {
@@ -113,10 +120,16 @@ function GridAfiliados() {
         <Grid size={{ xs: 4, sm: 6, md: 12, lg: 12 }}>
           <MainGrid
             rows={rows}
-            columns={mainColumns(handleEditField, handleDeleteRecord)}
+            columns={mainColumns()}
             fileNameVar='Afiliados_cargados'
             showActions={false}
             loading={loading}
+            paginationMode='server'
+            rowCount={total}
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            pageSizeOptions={[20, 50, 100]} 
+            keepNonExistentRowsSelected
           />
         </Grid>
       </Grid>

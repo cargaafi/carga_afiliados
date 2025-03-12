@@ -7,30 +7,45 @@ const pool = mysql.createPool(process.env.DATABASE_URL).promise();
 async function getAfiliados___(req, res) {
   let connection;
   console.log('Inicio de getAfiliados___');
+  
   const usuario = req.query.usuario ?? '';
-
+  const page = parseInt(req.query.page) || 1; // Página actual
+  const limit = parseInt(req.query.limit) || 20; // Registros por página
+  const offset = (page - 1) * limit;
+  
+  
   try {
-      console.log('Obteniendo conexión...');
-      connection = await pool.getConnection();
-      
-      console.log('Ejecutando query...');
-      const [rows] = await connection.query(
-          'SELECT * FROM afiliados',
-          
-      );
-      console.log('Rows obtenidas:', rows.length);
-      res.json(rows);
-
+    connection = await pool.getConnection();
+    
+    const [rows] = await connection.query(
+      'SELECT * FROM afiliados LIMIT ? OFFSET ?', [limit, offset]
+    );
+    console.log(`Registros obtenidos: ${rows.length}`);
+    
+    // Obtener el total de registros (sin paginar)
+    const [[{ total }]] = await connection.query(
+      'SELECT COUNT(*) as total FROM afiliados'
+    );
+    
+    // Validar que el total se está enviando correctamente
+    console.log('Respuesta que se enviará:', { 
+      registrosEnviados: rows.length, 
+      totalRegistros: total, 
+      paginaActual: page 
+    });
+    
+    res.json({ data: rows, total });
   } catch (error) {
-      console.error('Error en getAfiliados:', error);
-      res.status(500).json({ error: error.message });
+    console.error('Error en getAfiliados:', error);
+    res.status(500).json({ error: error.message });
   } finally {
-      if (connection) {
-          console.log('Liberando conexión...');
-          connection.release();
-      }
+    if (connection) {
+      connection.release();
+      console.log('Conexión liberada');
+    }
   }
 }
+
 
 async function getReporteCompleto(req, res) {
   let connection;

@@ -187,6 +187,11 @@ export default function MainGrid({
   showActions = true, // Nuevo prop para controlar si mostrar o no las acciones
   defaultPageSize = 20, // Nuevo prop para especificar el tamaño de página predeterminado
   loading = false,
+  paginationMode = 'client',
+  rowCount = 0,
+  paginationModel,
+  onPaginationModelChange,
+  ...props
 }) {
   // Estado local para las filas y para el modelo de edición de fila
   const [gridRows, setGridRows] = React.useState(rows);
@@ -297,13 +302,13 @@ export default function MainGrid({
       ]
     : columns;
 
-  return (
+   return (
     <ThemeProvider theme={theme}>
       <DataGrid
         editMode={showActions ? 'row' : undefined}
         rows={gridRows}
         columns={editableColumns}
-        getRowId={(row) => row[idField]} // Usar el campo especificado como ID
+        getRowId={(row) => row[idField]}
         rowHeight={35}
         loading={loading}
         slotProps={{
@@ -313,11 +318,17 @@ export default function MainGrid({
           },
         }}
         density='compact'
-        initialState={{
+        // Configuración de paginación condicionada
+        paginationMode={paginationMode}
+        rowCount={paginationMode === 'server' ? rowCount : undefined}
+        paginationModel={paginationModel}
+        onPaginationModelChange={onPaginationModelChange}
+        // Usar initialState solo si no hay paginationModel
+        initialState={!paginationModel ? {
           pagination: {
             paginationModel: { pageSize: defaultPageSize, page: 0 },
           },
-        }}
+        } : undefined}
         pageSizeOptions={[5, 10, 20, 50, 100]}
         rowModesModel={rowModesModel}
         onRowModesModelChange={handleRowModesModelChange}
@@ -335,6 +346,7 @@ export default function MainGrid({
           '& .MuiDataGrid-virtualScroller': { width: '100%' },
           '& .MuiDataGrid-footerContainer': { width: '100%' }
         }}
+        {...props} // Pasar cualquier otra propiedad
       />
     </ThemeProvider>
   );
