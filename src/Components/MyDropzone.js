@@ -8,6 +8,7 @@ import {
   Button,
   Card,
   CardContent,
+  CircularProgress,
 } from '@mui/material';
 import axios from 'axios';
 import { API_URL } from '../Config/Config';
@@ -117,7 +118,7 @@ function MyDropzone() {
           </Box>
 
           {acceptedFiles.length > 0 && (
-            <Box sx={{ mt: 2, textAlign: 'left' }}>
+            <Box sx={{ mt: 2}}>
               <Typography variant='h6'>Archivo(s) seleccionado(s):</Typography>
               <List sx={{ pl: 2 }}>
                 {acceptedFiles.map((file) => (
@@ -132,7 +133,18 @@ function MyDropzone() {
                 disabled={isUploading}
                 sx={{ mt: 1, bgcolor: '#8f2e2e' }}
               >
-                {isUploading ? 'Subiendo...' : 'Subir Archivo'}
+                {isUploading ? (
+                  <>
+                    {' '}
+                    <CircularProgress
+                      size={15}
+                      style={{ color: '#8f2e2e', marginRight: '3px' }}
+                    />{' '}
+                    Subiendo...{' '}
+                  </>
+                ) : (
+                  'Subir Archivo'
+                )}
               </Button>
             </Box>
           )}
