@@ -12,7 +12,7 @@ import {
 import axios from 'axios';
 import { API_URL } from '../Config/Config';
 import { useAuth } from '../Components/AuthContext';
-
+import Swal from 'sweetalert2';
 function MyDropzone() {
   const [uploadResult, setUploadResult] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -61,7 +61,24 @@ function MyDropzone() {
       setShowUploader(false); // Oculta el uploader después de subir
     } catch (error) {
       console.error('Error al subir el archivo:', error);
-      alert('Error al subir el archivo. Revisa la consola.');
+
+      // Formatear el mensaje de error para la alerta
+      let errorMessage = 'Error al subir el archivo.';
+
+      if (error.response && error.response.data) {
+        errorMessage = error.response.data.message || errorMessage;
+      } else if (error.message) {
+        // Para errores de red o otros errores que no vengan del servidor
+        errorMessage = error.message;
+      }
+
+      // Usar SweetAlert para mostrar el error
+      Swal.fire({
+        title: 'Error',
+        text: errorMessage,
+        icon: 'error',
+        confirmButtonColor: '#8f2e2e',
+      });
     } finally {
       setIsUploading(false);
     }
@@ -81,8 +98,8 @@ function MyDropzone() {
           }}
         >
           <Typography variant='h4' sx={{ color: '#8f2e2e', mb: 2 }}>
-        Carga de Archivos
-      </Typography>
+            Carga de Archivos
+          </Typography>
           <Box
             {...getRootProps()}
             sx={{
@@ -163,7 +180,7 @@ function MyDropzone() {
                 sx={{ borderBottom: '2px solid #e0e0e0', pb: 1 }}
               >
                 Filas con datos totales leídas:{' '}
-                <strong>{uploadResult.totalFilasConDatos}</strong>
+                <strong>{uploadResult?.totalFilasConDatos}</strong>
               </Typography>
 
               {/* Errores y advertencias */}
@@ -177,7 +194,7 @@ function MyDropzone() {
                 >
                   Claves de Elector Inválidas (longitud diferente a 18):{' '}
                   <strong style={{ marginLeft: '8px' }}>
-                    {uploadResult.claveElectorInvalida}
+                    {uploadResult?.claveElectorInvalida}
                   </strong>
                 </Typography>
 
@@ -190,10 +207,9 @@ function MyDropzone() {
                 >
                   Claves de Afiliado Inválidas (longitud diferente a 18):{' '}
                   <strong style={{ marginLeft: '8px' }}>
-                    {uploadResult.claveAfiliadoInvalida}
+                    {uploadResult?.claveAfiliadoInvalida}
                   </strong>
                 </Typography>
-
                 <Typography
                   sx={{
                     color: '#ed6c02',
@@ -201,22 +217,11 @@ function MyDropzone() {
                     alignItems: 'center',
                   }}
                 >
-                  Claves de Elector Duplicadas en el Archivo:{' '}
-                  <strong style={{ marginLeft: '8px' }}>
-                    {uploadResult.duplicadosEnArchivo}
-                  </strong>
-                </Typography>
-
-                <Typography
-                  sx={{
-                    color: '#ed6c02',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
+                  {/* Cambiamos aquí: antes usabas `uploadResult.totalRepetidosSumados`, 
+            ahora usamos `uploadResult.duplicadosTotales`. */}
                   Total de Registros Duplicados en el Archivo:{' '}
                   <strong style={{ marginLeft: '8px' }}>
-                    {uploadResult.totalRepetidosSumados} {/* 171 */}
+                    {uploadResult?.duplicadosTotales}
                   </strong>
                 </Typography>
 
@@ -229,7 +234,7 @@ function MyDropzone() {
                 >
                   Claves duplicadas con Registros en la Base de Datos:{' '}
                   <strong style={{ marginLeft: '8px' }}>
-                    {uploadResult.duplicadosConExistentes}
+                    {uploadResult?.duplicadosConExistentes}
                   </strong>
                 </Typography>
               </Box>
@@ -254,10 +259,11 @@ function MyDropzone() {
               >
                 Registros insertados exitosamente:
                 <strong style={{ marginLeft: '8px', fontSize: '24px' }}>
-                  {uploadResult.insertadasExitosamente}
+                  {uploadResult?.insertadasExitosamente}
                 </strong>
               </Typography>
             </Box>
+
             {/* Botón centrado */}
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
               <Button

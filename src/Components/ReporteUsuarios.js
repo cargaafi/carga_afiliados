@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Card, CardContent, Typography, Tabs, Tab } from '@mui/material';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Tabs,
+  Tab,
+  CircularProgress,
+} from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import ReactApexChart from 'react-apexcharts';
 import axios from 'axios';
@@ -401,9 +409,17 @@ function ReporteUsuarios() {
                 <Typography variant='h6' color='text.secondary'>
                   Total de Registros
                 </Typography>
-                <Typography variant='h4'>
-                  {totalUploads.toLocaleString()}
-                </Typography>
+                {loading ? (
+                  <Box
+                    sx={{ display: 'flex', justifyContent: 'center', py: 2 }}
+                  >
+                    <CircularProgress style={{ color: '#8f2e2e' }} />
+                  </Box>
+                ) : (
+                  <Typography variant='h4'>
+                    {totalUploads.toLocaleString()}
+                  </Typography>
+                )}
               </CardContent>
             </Card>
           </Grid>
@@ -413,7 +429,15 @@ function ReporteUsuarios() {
                 <Typography variant='h6' color='text.secondary'>
                   Usuarios Activos
                 </Typography>
-                <Typography variant='h4'>{usuariosActivos}</Typography>
+                {loading ? (
+                  <Box
+                    sx={{ display: 'flex', justifyContent: 'center', py: 2 }}
+                  >
+                    <CircularProgress style={{ color: '#8f2e2e' }}/>
+                  </Box>
+                ) : (
+                  <Typography variant='h4'>{usuariosActivos}</Typography>
+                )}
               </CardContent>
             </Card>
           </Grid>
@@ -423,7 +447,15 @@ function ReporteUsuarios() {
                 <Typography variant='h6' color='text.secondary'>
                   Casas Activas
                 </Typography>
-                <Typography variant='h4'>{casasActivas}</Typography>
+                {loading ? (
+                  <Box
+                    sx={{ display: 'flex', justifyContent: 'center', py: 2 }}
+                  >
+                    <CircularProgress style={{ color: '#8f2e2e' }}/>
+                  </Box>
+                ) : (
+                  <Typography variant='h4'>{casasActivas}</Typography>
+                )}
               </CardContent>
             </Card>
           </Grid>
@@ -436,9 +468,17 @@ function ReporteUsuarios() {
                 <Typography variant='h6' color='text.secondary'>
                   Promedio por Usuario
                 </Typography>
-                <Typography variant='h4'>
-                  {Math.round(averageUploads).toLocaleString()}
-                </Typography>
+                {loading ? (
+                  <Box
+                    sx={{ display: 'flex', justifyContent: 'center', py: 2 }}
+                  >
+                    <CircularProgress style={{ color: '#8f2e2e' }}/>
+                  </Box>
+                ) : (
+                  <Typography variant='h4'>
+                    {Math.round(averageUploads).toLocaleString()}
+                  </Typography>
+                )}
               </CardContent>
             </Card>
           </Grid>
@@ -448,9 +488,17 @@ function ReporteUsuarios() {
                 <Typography variant='h6' color='text.secondary'>
                   Promedio por Casa
                 </Typography>
-                <Typography variant='h4'>
-                  {Math.round(promedioPorCasa).toLocaleString()}
-                </Typography>
+                {loading ? (
+                  <Box
+                    sx={{ display: 'flex', justifyContent: 'center', py: 2 }}
+                  >
+                    <CircularProgress style={{ color: '#8f2e2e' }} />
+                  </Box>
+                ) : (
+                  <Typography variant='h4'>
+                    {Math.round(promedioPorCasa).toLocaleString()}
+                  </Typography>
+                )}
               </CardContent>
             </Card>
           </Grid>

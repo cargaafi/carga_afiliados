@@ -12,9 +12,15 @@ async function readAndFilterExcel(file) {
     let invalidKeyCount = 0;
     let invalidAfiliadoKeyCount = 0;
     let totalRowsWithData = 0;
+    let rowsWithoutData = 0;
+    let rowsWithDuplicateKeys = 0;
 
     await workbook.xlsx.readFile(file.path);
     const worksheet = workbook.getWorksheet(1);
+
+    // Conjunto para rastrear claves ya vistas
+    const seenClaveElector = new Set();
+    const duplicateKeys = new Set();
 
     for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
       const row = worksheet.getRow(rowNumber);
@@ -27,7 +33,10 @@ async function readAndFilterExcel(file) {
         }
       }
 
-      if (!hasData) continue;
+      if (!hasData) {
+        rowsWithoutData++;
+        continue;
+      }
 
       const rowData = [
         row.getCell(2).value, // B: Casa
@@ -36,7 +45,9 @@ async function readAndFilterExcel(file) {
         row.getCell(5).value, // E: Apellido Materno
         row.getCell(6).value, // F: Nombre
         row.getCell(7).value, // G: Teléfono
-        row.getCell(8).value, // H: Clave de Elector (PRIMARY KEY)
+        row.getCell(8).value
+          ? row.getCell(8).value.toString().trim().toUpperCase()
+          : '', // H: Clave elector
         row.getCell(9).value, // I: Sección Electoral
         row.getCell(10).value, // J: Municipio
         row.getCell(11).value, // K: Entidad Federativa
@@ -44,39 +55,45 @@ async function readAndFilterExcel(file) {
 
       totalRowsWithData++;
 
-      const claveAfiliado = rowData[1] ? rowData[1].toString().trim() : ''; // Eliminamos espacios
-      
+      // Validación de clave de afiliado
+      const claveAfiliado = rowData[1] ? rowData[1].toString().trim() : '';
       if (!claveAfiliado || claveAfiliado.length !== 18) {
-          invalidAfiliadoKeyCount++;
-          continue;
+        invalidAfiliadoKeyCount++;
+        continue;
       }
-      
-      const clave = rowData[6] ? rowData[6].toString().trim() : ''; // Eliminamos espacios
-      if (!clave || clave.length !== 18) {
-          invalidKeyCount++;
-          continue;
-      }
-      
 
-      if (clave.toString().length !== 18) {
+      // Validación de clave elector
+      const clave = rowData[6];
+      if (!clave || clave.length !== 18) {
         invalidKeyCount++;
         continue;
       }
 
-      data.push(rowData);
+      // Duplicados dentro del Excel
+      if (seenClaveElector.has(clave)) {
+        duplicateKeys.add(clave);
+        rowsWithDuplicateKeys++;
+        // Se descarta la fila
+        continue;
+      } else {
+        seenClaveElector.add(clave);
+        data.push(rowData);
+      }
     }
 
+    // Retornamos un objeto con la data válida y las estadísticas
     return {
       rows: data,
       stats: {
         totalRowsWithData,
-        emptyKeyCount,
+        emptyKeyCount, // Nunca se incrementa, pero lo dejamos
         invalidKeyCount,
         invalidAfiliadoKeyCount,
+        rowsWithDuplicateKeys, // cuántas filas duplicadas se descartaron
+        duplicateKeysCount: duplicateKeys.size,
       },
     };
   } catch (error) {
-    console.error('Error en readAndFilterExcel:', error);
     throw new Error('Error al procesar el archivo Excel: ' + error.message);
   }
 }
@@ -87,18 +104,22 @@ async function insertIntoTemp(rows, usuario) {
     if (!rows.length) {
       return {
         insertedCount: 0,
-        duplicateCount: 0,
         duplicatesInFile: 0,
+        duplicatesWithExisting: 0,
+        totalDuplicatedRecords: 0,
       };
     }
 
     connection = await pool.getConnection();
+
+    // 1) Truncar fuera de la transacción (aseguramos arranque limpio)
+    await connection.query('TRUNCATE temp_afiliados');
+    console.log('Tabla truncada correctamente');
+
+    // 2) Iniciar la transacción
     await connection.beginTransaction();
 
-    // 1. Limpiar tabla temporal
- await connection.query('TRUNCATE TABLE temp_afiliados');
-
-    // 2. Insertar en temp_afiliados en chunks
+    // Insertar en temp_afiliados en chunks
     const chunkSize = 500;
     let insertedTemp = 0;
 
@@ -120,118 +141,115 @@ async function insertIntoTemp(rows, usuario) {
 
       await connection.query(
         `
-              INSERT INTO temp_afiliados (
-                  casa,
-                  clave_elector_afiliado,
-                  apellido_paterno,
-                  apellido_materno,
-                  nombre,
-                  telefono,
-                  clave_elector,
-                  seccion_electoral,
-                  municipio,
-                  entidad_federativa,
-                  usuario_subida
-              ) VALUES ?
-          `,
+        INSERT INTO temp_afiliados (
+            casa,
+            clave_elector_afiliado,
+            apellido_paterno,
+            apellido_materno,
+            nombre,
+            telefono,
+            clave_elector,
+            seccion_electoral,
+            municipio,
+            entidad_federativa,
+            usuario_subida
+        ) VALUES ?
+        `,
         [values]
       );
-
       insertedTemp += values.length;
     }
 
-    // 3. Obtener estadísticas
+    // Contar duplicados en temp_afiliados
     const [duplicatesInFile] = await connection.query(`
-          SELECT COUNT(*) as count 
-          FROM (
-              SELECT clave_elector 
-              FROM temp_afiliados 
-              GROUP BY clave_elector 
-              HAVING COUNT(*) > 1
-          ) as dups
-      `);
-
-      const [totalDuplicatedRecords] = await connection.query(`
-        SELECT SUM(dup.count) AS total_registros_duplicados
-        FROM (
-            SELECT COUNT(*) - 1 AS count
-            FROM temp_afiliados
-            GROUP BY clave_elector
-            HAVING COUNT(*) > 1
-        ) AS dup;
+      SELECT COUNT(*) AS count 
+      FROM (
+          SELECT clave_elector 
+          FROM temp_afiliados 
+          GROUP BY clave_elector 
+          HAVING COUNT(*) > 1
+      ) AS dups
     `);
-    
+
+    const [totalDuplicatedRecords] = await connection.query(`
+      SELECT SUM(dup.count) AS total_registros_duplicados
+      FROM (
+          SELECT COUNT(*) - 1 AS count
+          FROM temp_afiliados
+          GROUP BY clave_elector
+          HAVING COUNT(*) > 1
+      ) AS dup;
+    `);
 
     const [existingInMain] = await connection.query(`
-          SELECT COUNT(*) as count
-          FROM temp_afiliados t
-          INNER JOIN afiliados a ON t.clave_elector = a.clave_elector
-      `);
+      SELECT COUNT(*) as count
+      FROM temp_afiliados t
+      INNER JOIN afiliados a ON t.clave_elector = a.clave_elector
+    `);
 
-    // 4. Insertar registros válidos en tabla principal
+    // Insertar registros válidos en afiliados
     const [insertResult] = await connection.query(`
-          INSERT INTO afiliados (
-                        casa,
+      INSERT INTO afiliados (
+          casa,
+          clave_elector_afiliado,
+          apellido_paterno,
+          apellido_materno,
+          nombre,
+          telefono,
+          clave_elector,
+          seccion_electoral,
+          municipio,
+          entidad_federativa,
+          usuario_subida
+      )
+      SELECT DISTINCT
+          t.casa,
+          t.clave_elector_afiliado,
+          t.apellido_paterno,
+          t.apellido_materno,
+          t.nombre,
+          t.telefono,
+          t.clave_elector,
+          t.seccion_electoral,
+          t.municipio,
+          t.entidad_federativa,
+          t.usuario_subida
+      FROM temp_afiliados t
+      WHERE t.clave_elector NOT IN (SELECT clave_elector FROM afiliados)
+      AND t.clave_elector IN (
+          SELECT clave_elector 
+          FROM temp_afiliados 
+          GROUP BY clave_elector 
+          HAVING COUNT(*) = 1
+      )
+    `);
 
-              clave_elector_afiliado,
-              apellido_paterno,
-              apellido_materno,
-              nombre,
-              telefono,
-              clave_elector,
-              seccion_electoral,
-              municipio,
-              entidad_federativa,
-              usuario_subida
-          )
-          SELECT DISTINCT
-                        t.casa,
-
-              t.clave_elector_afiliado,
-              t.apellido_paterno,
-              t.apellido_materno,
-              t.nombre,
-              t.telefono,
-              t.clave_elector,
-              t.seccion_electoral,
-              t.municipio,
-              t.entidad_federativa,
-              t.usuario_subida
-          FROM temp_afiliados t
-          WHERE t.clave_elector NOT IN (SELECT clave_elector FROM afiliados)
-          AND t.clave_elector IN (
-              SELECT clave_elector 
-              FROM temp_afiliados 
-              GROUP BY clave_elector 
-              HAVING COUNT(*) = 1
-          )
-      `);
-
+    // 3) Si todo OK, hacemos commit
     await connection.commit();
+    connection.release();
 
     return {
       insertedCount: insertResult.affectedRows,
       duplicatesInFile: duplicatesInFile[0].count,
       duplicatesWithExisting: existingInMain[0].count,
-      totalDuplicatedRecords: totalDuplicatedRecords[0].total_registros_duplicados || 0, // Agregado
-  };
+      totalDuplicatedRecords:
+        totalDuplicatedRecords[0].total_registros_duplicados || 0,
+    };
   } catch (error) {
+    // Si algo falla:
     if (connection) {
-      await connection.rollback();
-    }
-    console.error('Error en insertIntoTemp:', error);
-    throw new Error(
-      'Error al procesar los datos en la tabla temporal: ' + error.message
-    );
-  } finally {
-    if (connection) {
-     await connection.query('TRUNCATE TABLE temp_afiliados');
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error('Error en rollback:', rollbackError);
+      }
       connection.release();
     }
+    throw new Error(error.message);
   }
 }
+
 async function uploadExcel(req, res) {
-  let connection;
   try {
     const file = req.file;
     const usuario = req.body.usuario;
@@ -239,35 +257,41 @@ async function uploadExcel(req, res) {
     if (!file) {
       throw new Error('No se recibió ningún archivo');
     }
-
     if (!usuario) {
       throw new Error('No se recibió el usuario');
     }
 
-    // 1. Validaciones de formato del Excel
+    // 1. Proceso de lectura y filtrado
     const { rows, stats } = await readAndFilterExcel(file);
 
-    // 2. Proceso con tabla temporal
-    const { insertedCount, duplicatesInFile, duplicatesWithExisting, totalDuplicatedRecords } =
-      await insertIntoTemp(rows, usuario);
+    // 2. Proceso de inserción temporal y luego a afiliados
+    const {
+      insertedCount,
+      duplicatesInFile,
+      duplicatesWithExisting,
+      totalDuplicatedRecords,
+    } = await insertIntoTemp(rows, usuario);
 
-      return res.json({
-        message: 'Archivo procesado correctamente.',
-        totalFilasConDatos: stats.totalRowsWithData,
-        claveElectorVacia: stats.emptyKeyCount,
-        claveElectorInvalida: stats.invalidKeyCount,
-        claveAfiliadoInvalida: stats.invalidAfiliadoKeyCount,
-        duplicadosEnArchivo: duplicatesInFile,
-        duplicadosConExistentes: duplicatesWithExisting,
-        insertadasExitosamente: insertedCount,
-        totalRepetidosSumados: totalDuplicatedRecords, // Nuevo campo
+    // Calculamos duplicados totales = duplicados de lectura + duplicados detectados en temp
+    const duplicadosTotales =
+      stats.rowsWithDuplicateKeys + (totalDuplicatedRecords || 0);
+
+    return res.json({
+      message: 'Archivo procesado correctamente.',
+      totalFilasConDatos: stats.totalRowsWithData,
+      claveElectorVacia: stats.emptyKeyCount,
+      claveElectorInvalida: stats.invalidKeyCount,
+      claveAfiliadoInvalida: stats.invalidAfiliadoKeyCount,
+      // Este es el que unifica en un solo valor
+      duplicadosTotales,
+      // Si quieres exponerlo aún:
+      duplicadosEnArchivo: duplicatesInFile,
+      duplicadosConExistentes: duplicatesWithExisting,
+      insertadasExitosamente: insertedCount,
     });
   } catch (error) {
-    console.error('Error en uploadExcel:', error);
     return res.status(500).json({
-      message:
-        error.message ||
-        'Error al procesar el archivo Excel. Intente de nuevo.',
+      message: error.message || 'Error al procesar el archivo Excel.',
       error: error.toString(),
     });
   }
