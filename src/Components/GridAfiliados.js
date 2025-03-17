@@ -94,47 +94,41 @@ function GridAfiliados() {
     ...row,
   }));
 
-  return (
-    <Box
-      sx={{
-        p: 5,
-        pr: 1,
-        maxWidth: 'xxl',
-        mx: 'auto',
-        width: '100%',
-        transform: 'scale(0.8)',
-        transformOrigin: 'top left',
-      }}
-    >
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 4, sm: 6, md: 12, lg: 12 }}>
-          <Typography
-            variant='h4'
-            sx={{ color: '#8f2e2e', mb: 2, textAlign: 'center' }}
-          >
-            Registros de Afiliados
-          </Typography>
-        </Grid>
+return (
+  <Box
+    sx={{
+      width: '99%',
+    }}
+  >
+    <Grid container spacing={1}>
+      <Grid size={{ xs: 3, sm: 4, md: 6, lg: 10 }}>
+        <Typography
+          variant='h4'
+          sx={{ color: '#8f2e2e', mb: 1, textAlign: 'center' }}
+        >
+          Registros de Afiliados
+        </Typography>
       </Grid>
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 4, sm: 6, md: 12, lg: 12 }}>
-          <MainGrid
-            rows={rows}
-            columns={mainColumns()}
-            fileNameVar='Afiliados_cargados'
-            showActions={false}
-            loading={loading}
-            paginationMode='server'
-            rowCount={total}
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            pageSizeOptions={[20, 50, 100]} 
-            keepNonExistentRowsSelected
-          />
-        </Grid>
+    </Grid>
+    <Grid container disableEqualOverflow spacing={0} size={100}>
+      <Grid size={{ xs: 3, sm: 4, md: 6, lg: 10 }}>
+        <MainGrid
+          rows={rows}
+          columns={mainColumns()}
+          fileNameVar='Afiliados_cargados'
+          showActions={false}
+          loading={loading}
+          paginationMode='server'
+          rowCount={total}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[20, 50, 100]} 
+          keepNonExistentRowsSelected
+        />
       </Grid>
-    </Box>
-  );
+    </Grid>
+  </Box>
+);
 }
 
 export default GridAfiliados;
