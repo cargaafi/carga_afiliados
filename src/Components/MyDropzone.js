@@ -209,19 +209,6 @@ function MyDropzone() {
                     {uploadResult?.claveElectorInvalida}
                   </strong>
                 </Typography>
-
-                <Typography
-                  sx={{
-                    color: '#d32f2f',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  Claves de Afiliado Inválidas (longitud diferente a 18):{' '}
-                  <strong style={{ marginLeft: '8px' }}>
-                    {uploadResult?.claveAfiliadoInvalida}
-                  </strong>
-                </Typography>
                 <Typography
                   sx={{
                     color: '#ed6c02',
@@ -229,8 +216,6 @@ function MyDropzone() {
                     alignItems: 'center',
                   }}
                 >
-                  {/* Cambiamos aquí: antes usabas `uploadResult.totalRepetidosSumados`, 
-            ahora usamos `uploadResult.duplicadosTotales`. */}
                   Total de Registros Duplicados en el Archivo:{' '}
                   <strong style={{ marginLeft: '8px' }}>
                     {uploadResult?.duplicadosTotales}

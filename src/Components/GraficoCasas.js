@@ -1,13 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import {
-  Box,
-  Typography,
-  useTheme,
-  ThemeProvider,
-} from '@mui/material';
+import { Box, useTheme, ThemeProvider } from '@mui/material';
 import { API_URL } from '../Config/Config';
 import MainGrid from '../Grids/MainGrid';
+
 const GraficoCasas = () => {
   const [casas, setCasas] = useState([]);
   const theme = useTheme();
@@ -26,8 +22,27 @@ const GraficoCasas = () => {
   }, []);
 
   const columns = [
-    { field: 'casa', headerName: 'Casa', flex: 1 },
-    { field: 'registros', headerName: 'Registros', flex: 1 },
+    {
+      field: 'casa',
+      headerName: 'Casa',
+      flex: 1,
+      headerAlign: 'center',
+      align: 'center',
+    },
+    {
+      field: 'procesadas',
+      headerName: 'Registros leídos',
+      flex: 1,
+      headerAlign: 'center',
+      align: 'center',
+    },
+    {
+      field: 'total',
+      headerName: 'Registros OK',
+      flex: 1,
+      headerAlign: 'center',
+      align: 'center',
+    },
   ];
 
   return (
@@ -43,17 +58,13 @@ const GraficoCasas = () => {
           boxShadow: 3,
         }}
       >
-        <Typography variant='h5' sx={{ mb: 2, fontWeight: 'bold' }}>
-          Registros por Casa
-        </Typography>
-
         <MainGrid
           rows={casas.map((casa, index) => ({ id: index, ...casa }))}
           columns={columns}
           fileNameVar='Casas_registradas'
           idField='casa'
           showActions={false}
-          defaultPageSize={50} 
+          defaultPageSize={50}
         />
       </Box>
     </ThemeProvider>

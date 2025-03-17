@@ -18,7 +18,7 @@ import Grid from '@mui/material/Grid2';
 import GraficoCasas from './GraficoCasas';
 import { esES } from '@mui/x-data-grid/locales';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import TreemapCasas from './TreemapCasas';
+//import TreemapCasas from './TreemapCasas';
 function ReporteUsuarios() {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState([]); // allUsers desde getReporteCompleto
@@ -33,7 +33,7 @@ function ReporteUsuarios() {
   const [tabValue, setTabValue] = useState(0);
   const [tabValueGrafico, setTabValueGrafico] = useState(0);
 
-  const { user } = useAuth();
+  //const { user } = useAuth();
   // Tema para DataGrid con idioma español
   const theme = createTheme(
     {
@@ -388,22 +388,22 @@ function ReporteUsuarios() {
 
   return (
     <>
-      <Box sx={{ p: 3, maxWidth: 'lg', mx: 'auto', width: '100%' }}>
+      <Box sx={{ p: 1, maxWidth: 'lg', mx: 'auto', width: '100%' }}>
         {/* Título */}
-        <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid size={{ xs: 12, sm: 12, md: 12 }}>
             <Typography
               variant='h4'
               sx={{ color: '#8f2e2e', mb: 4, textAlign: 'center' }}
             >
-              Reporte de Actividad de Usuarios y Casas
+              Reporte Casas
             </Typography>
           </Grid>
         </Grid>
 
         {/* Tarjetas centradas */}
         <Grid container spacing={2} sx={{ mb: 4 }}>
-          <Grid size={{ xs: 12, sm: 12, md: 4 }}>
+          <Grid size={{ xs: 12, sm: 12, md: 6 }}>
             <Card>
               <CardContent>
                 <Typography variant='h6' color='text.secondary'>
@@ -423,6 +423,7 @@ function ReporteUsuarios() {
               </CardContent>
             </Card>
           </Grid>
+          {/*  
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <Card>
               <CardContent>
@@ -441,7 +442,8 @@ function ReporteUsuarios() {
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          */}
+          <Grid size={{ xs: 12, sm: 6, md: 6 }}>
             <Card>
               <CardContent>
                 <Typography variant='h6' color='text.secondary'>
@@ -460,7 +462,7 @@ function ReporteUsuarios() {
             </Card>
           </Grid>
         </Grid>
-
+  {/*  
         <Grid container spacing={2} sx={{ mb: 4 }}>
           <Grid size={{ xs: 12, sm: 6, md: 6 }}>
             <Card>
@@ -503,7 +505,7 @@ function ReporteUsuarios() {
             </Card>
           </Grid>
         </Grid>
-
+ */}
         {/* Tabs para alternar entre diferentes tipos de gráficos */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
           <Tabs
@@ -526,13 +528,27 @@ function ReporteUsuarios() {
               },
             }}
           >
-            <Tab label='Vista Grafico' />
-            <Tab label='Vista Grilla' />
+            <Tab label='Registros por Casas' />
+       {/*     <Tab label='Vista Grilla' /> solo borrar aqui y abajo si quieren el grafico*/} 
           </Tabs>
         </Box>
         {/* Contenido de las tabs */}
 
+
         {tabValueGrafico === 0 && (
+          <Grid container spacing={1}>
+            <Grid size={{ sm: 12, xs: 12, md: 12 }}>
+              <Card>
+                <CardContent>
+                  {' '}
+                  <GraficoCasas />
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        )}
+
+        {tabValueGrafico === 1 && (
           <>
             <Grid container spacing={1}>
               <Grid size={{ sm: 12, xs: 12, md: 12 }}>
@@ -541,7 +557,7 @@ function ReporteUsuarios() {
                     <Typography variant='h6' gutterBottom>
                       Grafico Casas
                     </Typography>
-                    <TreemapCasas />
+                       {/*  <TreemapCasas /> sacar comentario para grafico */}
                   </CardContent>
                 </Card>
               </Grid>
@@ -549,21 +565,7 @@ function ReporteUsuarios() {
           </>
         )}
 
-        {tabValueGrafico === 1 && (
-          <Grid container spacing={1}>
-            <Grid size={{ sm: 12, xs: 12, md: 12 }}>
-              <Card>
-                <CardContent>
-                  {' '}
-                  <Typography variant='h6' gutterBottom>
-                    Registros por Casa
-                  </Typography>
-                  <GraficoCasas />
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        )}
+     
 
         {/* Tabs para alternar entre vista de usuarios y casas */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>

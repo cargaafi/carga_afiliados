@@ -10,7 +10,7 @@ async function readAndFilterExcel(file) {
 
     let emptyKeyCount = 0;
     let invalidKeyCount = 0;
-    let invalidAfiliadoKeyCount = 0;
+    //let invalidAfiliadoKeyCount = 0;
     let totalRowsWithData = 0;
     let rowsWithoutData = 0;
     let rowsWithDuplicateKeys = 0;
@@ -55,13 +55,23 @@ async function readAndFilterExcel(file) {
 
       totalRowsWithData++;
 
+      // Si es la fila problemática para Casa 11, omitirla
+      if (rowNumber === 1096 && row.getCell(2).value === 11) {
+        console.log(`Se omite la fila problemática ${rowNumber} para Casa 11.`);
+        continue;
+      }
+      // eslint-disable-next-line no-lone-blocks
+      {
+        /*  
+      
       // Validación de clave de afiliado
       const claveAfiliado = rowData[1] ? rowData[1].toString().trim() : '';
       if (!claveAfiliado || claveAfiliado.length !== 18) {
         invalidAfiliadoKeyCount++;
         continue;
       }
-
+*/
+      }
       // Validación de clave elector
       const clave = rowData[6];
       if (!clave || clave.length !== 18) {
@@ -81,14 +91,13 @@ async function readAndFilterExcel(file) {
       }
     }
 
-    // Retornamos un objeto con la data válida y las estadísticas
     return {
       rows: data,
       stats: {
         totalRowsWithData,
         emptyKeyCount, // Nunca se incrementa, pero lo dejamos
         invalidKeyCount,
-        invalidAfiliadoKeyCount,
+        // invalidAfiliadoKeyCount,
         rowsWithDuplicateKeys, // cuántas filas duplicadas se descartaron
         duplicateKeysCount: duplicateKeys.size,
       },
@@ -112,7 +121,7 @@ async function insertIntoTemp(rows, usuario) {
 
     connection = await pool.getConnection();
 
-    // 1) Truncar fuera de la transacción (aseguramos arranque limpio)
+    // 1) Truncar fuera de la transacción
     await connection.query('TRUNCATE temp_afiliados');
     console.log('Tabla truncada correctamente');
 
@@ -249,7 +258,38 @@ async function insertIntoTemp(rows, usuario) {
   }
 }
 
+async function registrarHistorialCarga(connection, casa, totalLeidos) {
+  try {
+    // Obtener total actual en la base principal
+    const [totalRegistrosActuales] = await connection.query(
+      'SELECT COUNT(*) as total FROM afiliados WHERE casa = ?',
+      [casa]
+    );
+    
+    const totalActual = totalRegistrosActuales[0].total;
+    
+    // Insertar registro en historial
+    await connection.query(`
+      INSERT INTO historial_carga (
+        casa, 
+        procesados, 
+        total
+      ) VALUES (?, ?, ?)
+    `, [
+      casa,
+      totalLeidos,
+      totalActual
+    ]);
+    
+    return true;
+  } catch (error) {
+    console.error('Error al registrar historial de carga:', error);
+    return false;
+  }
+}
+
 async function uploadExcel(req, res) {
+  let connection;
   try {
     const file = req.file;
     const usuario = req.body.usuario;
@@ -276,12 +316,26 @@ async function uploadExcel(req, res) {
     const duplicadosTotales =
       stats.rowsWithDuplicateKeys + (totalDuplicatedRecords || 0);
 
+    // 3. Registrar en historial de carga (solo si hay registros)
+    if (rows.length > 0) {
+      // Obtener la casa del primer registro
+      const casa = rows[0][0];
+      
+      // Obtener una conexión para el historial
+      connection = await pool.getConnection();
+      
+      // Llamar a la función refactorizada
+      await registrarHistorialCarga(connection, casa, stats.totalRowsWithData);
+      
+      connection.release();
+    }
+
     return res.json({
       message: 'Archivo procesado correctamente.',
       totalFilasConDatos: stats.totalRowsWithData,
       claveElectorVacia: stats.emptyKeyCount,
       claveElectorInvalida: stats.invalidKeyCount,
-      claveAfiliadoInvalida: stats.invalidAfiliadoKeyCount,
+      //claveAfiliadoInvalida: stats.invalidAfiliadoKeyCount,
       // Este es el que unifica en un solo valor
       duplicadosTotales,
       // Si quieres exponerlo aún:
@@ -290,6 +344,11 @@ async function uploadExcel(req, res) {
       insertadasExitosamente: insertedCount,
     });
   } catch (error) {
+    // Liberar la conexión si existe
+    if (connection) {
+      connection.release();
+    }
+    
     return res.status(500).json({
       message: error.message || 'Error al procesar el archivo Excel.',
       error: error.toString(),

@@ -128,21 +128,21 @@ async function getGraficoCasas__(req, res) {
   let connection;
   try {
     connection = await pool.getConnection();
-
-    // Consulta para obtener el número de registros por cada casa
-    const [casaStats] = await connection.query(`
-      SELECT casa, COUNT(*) as registros
-      FROM afiliados
-      GROUP BY casa
-      ORDER BY registros DESC
+    
+    // Consulta para obtener todos los registros del historial ordenados por casa
+    const [historialCasas] = await connection.query(`
+      SELECT casa, procesadas, total, fecha_carga
+      FROM historial_carga
+      ORDER BY casa ASC
     `);
-
-    // Formato de respuesta
-    const chartData = casaStats.map((casa) => ({
-      casa: casa.casa,
-      registros: casa.registros,
+    
+    // Formato de respuesta con los nombres de campos correctos
+    const chartData = historialCasas.map(carga => ({
+      casa: carga.casa,
+      procesadas: carga.procesadas,
+      total: carga.total,
     }));
-
+    
     res.json({ chartData });
   } catch (error) {
     console.error('Error en getGraficoCasas:', error);
