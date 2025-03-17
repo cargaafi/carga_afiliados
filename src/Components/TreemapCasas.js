@@ -156,7 +156,7 @@ const TreemapCasas = () => {
     },
   });
 
-  useEffect(() => {
+ // useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await axios.get(`${API_URL}/getGraficoCasas`);
@@ -190,8 +190,8 @@ const TreemapCasas = () => {
       }
     };
 
-    fetchData();
-  }, []);
+    //fetchData();
+  //}, []);
 
   return (
     <div>
