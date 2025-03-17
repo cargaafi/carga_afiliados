@@ -443,7 +443,7 @@ function ReporteUsuarios() {
             </Card>
           </Grid>
           */}
-          <Grid size={{ xs: 12, sm: 12, md: 12 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 6 }}>
             <Card>
               <CardContent>
                 <Typography variant='h6' color='text.secondary'>
