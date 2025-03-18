@@ -260,7 +260,7 @@ async function insertIntoTemp(rows, usuario) {
 
 async function registrarHistorialCarga(connection, casa, totalLeidos) {
   try {
-    // Obtener total actual en la base principal
+    // Total actual en la base principal
     const [totalRegistrosActuales] = await connection.query(
       'SELECT COUNT(*) as total FROM afiliados WHERE casa = ?',
       [casa]
@@ -268,13 +268,18 @@ async function registrarHistorialCarga(connection, casa, totalLeidos) {
     
     const totalActual = totalRegistrosActuales[0].total;
     
-    // Insertar registro en historial
+    // Insertar o actualizar registro en historial
     await connection.query(`
       INSERT INTO historial_carga (
         casa, 
-        procesados, 
-        total
-      ) VALUES (?, ?, ?)
+        procesadas, 
+        total,
+        fecha_carga
+      ) VALUES (?, ?, ?, NOW())
+      ON DUPLICATE KEY UPDATE
+        procesadas = VALUES(procesadas),
+        total = VALUES(total),
+        fecha_carga = NOW()
     `, [
       casa,
       totalLeidos,
