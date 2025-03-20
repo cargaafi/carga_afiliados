@@ -98,10 +98,11 @@ return (
   <Box
     sx={{
       width: '99%',
+      p:2.2
     }}
   >
     <Grid container spacing={1}>
-      <Grid size={{ xs: 3, sm: 4, md: 6, lg: 10 }}>
+      <Grid size={{ xs: 2.5, sm: 4, md: 6, lg: 10 }}>
         <Typography
           variant='h4'
           sx={{ color: '#8f2e2e', mb: 1, textAlign: 'center' }}
@@ -110,8 +111,8 @@ return (
         </Typography>
       </Grid>
     </Grid>
-    <Grid container disableEqualOverflow spacing={0} size={100}>
-      <Grid size={{ xs: 3, sm: 4, md: 6, lg: 10 }}>
+    <Grid container spacing={0} size={50}>
+      <Grid size={{ xs: 2.5, sm: 4.5, md: 6, lg: 10 }}>
         <MainGrid
           rows={rows}
           columns={mainColumns()}

@@ -1,13 +1,13 @@
 
 export const mainColumns = () => [
-  { field: 'clave_elector_afiliado', headerName: 'Clave Elector Afiliado', width: 180 },
+  { field: 'clave_elector_afiliado', headerName: 'Clave Elector Afiliado', width: 200 },
   { field: 'casa', headerName: 'Casa', headerAlign: 'center', width: 70, editable: true, align: 'center'  },
   { field: 'apellido_paterno', headerName: 'Apellido Paterno', width: 150, editable: true },
   { field: 'apellido_materno', headerName: 'Apellido Materno', width: 150, editable: true },
   { field: 'nombre', headerName: 'Nombre(s)', width: 150, editable: true },
   { field: 'telefono', headerName: 'Teléfono', width: 120, editable: true },
-  { field: 'clave_elector', headerName: 'Clave Elector', width: 180 }, 
-  { field: 'seccion_electoral', headerName: 'S.Electoral', width: 90, editable: true, align: 'center' },
+  { field: 'clave_elector', headerName: 'Clave Elector', width:200 }, 
+  { field: 'seccion_electoral', headerName: 'S.Electoral', width: 120, editable: true, align: 'center' },
   { field: 'municipio', headerName: 'Municipio', width: 150, editable: true },
   { field: 'entidad_federativa', headerName: 'Entidad Federativa', width: 160, editable: true },
   { 
