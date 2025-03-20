@@ -31,14 +31,14 @@ const GraficoCasas = () => {
     },
     {
       field: 'procesadas',
-      headerName: 'Registros leídos',
+      headerName: 'Registros en Excel',
       flex: 1,
       headerAlign: 'center',
       align: 'center',
     },
     {
       field: 'total',
-      headerName: 'Registros OK',
+      headerName: 'Registros Cargados',
       flex: 1,
       headerAlign: 'center',
       align: 'center',
