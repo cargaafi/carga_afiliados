@@ -3,10 +3,97 @@ const mysql = require('mysql2');
 const pool = mysql.createPool(process.env.DATABASE_URL).promise();
 const ExcelJS = require('exceljs');
 
+function validarCamposAfiliado(rowData, rowNumber) {
+  const errores = [];
+
+  // Definición de restricciones para cada campo
+  const restricciones = {
+    casa: {
+      maxLength: 2,
+      tipo: 'char',
+      indice: 0,
+      nombre: 'Casa',
+      requerido: true,
+    },
+    claveElectorAfiliado: {
+      maxLength: 50,
+      tipo: 'varchar',
+      indice: 1,
+      nombre: 'Clave de Elector del Afiliado',
+    },
+    apellidoPaterno: {
+      maxLength: 250,
+      tipo: 'varchar',
+      indice: 2,
+      nombre: 'Apellido Paterno',
+    },
+    apellidoMaterno: {
+      maxLength: 250,
+      tipo: 'varchar',
+      indice: 3,
+      nombre: 'Apellido Materno',
+    },
+    nombre: { maxLength: 250, tipo: 'varchar', indice: 4, nombre: 'Nombre' },
+    telefono: { maxLength: 20, tipo: 'varchar', indice: 5, nombre: 'Teléfono' },
+    seccionElectoral: {
+      length: 4,
+      tipo: 'char',
+      indice: 7,
+      nombre: 'Sección Electoral',
+    },
+    municipio: {
+      maxLength: 250,
+      tipo: 'varchar',
+      indice: 8,
+      nombre: 'Municipio',
+    },
+    entidadFederativa: {
+      maxLength: 250,
+      tipo: 'varchar',
+      indice: 9,
+      nombre: 'Entidad Federativa',
+    },
+  };
+
+  // Validar cada campo según sus restricciones
+  Object.keys(restricciones).forEach((campo) => {
+    const restriccion = restricciones[campo];
+    const valor = rowData[restriccion.indice];
+    const valorStr = valor ? valor.toString().trim() : '';
+
+    // Verificar si es un campo requerido
+    if (restriccion.requerido && !valorStr) {
+      errores.push({
+        fila: rowNumber,
+        campo: restriccion.nombre,
+        valor: valorStr,
+        mensaje: `El campo ${restriccion.nombre} es requerido y no puede estar vacío`,
+      });
+      return; // Continuar con el siguiente campo
+    }
+    // Validar longitud máxima (para campos tipo varchar)
+    if (
+      restriccion.maxLength &&
+      valorStr &&
+      valorStr.length > restriccion.maxLength
+    ) {
+      errores.push({
+        fila: rowNumber,
+        campo: restriccion.nombre,
+        valor: valorStr,
+        mensaje: `El campo ${restriccion.nombre} excede la longitud máxima de ${restriccion.maxLength} caracteres`,
+      });
+    }
+  });
+
+  return errores;
+}
+
 async function readAndFilterExcel(file) {
   try {
     const workbook = new ExcelJS.Workbook();
     const data = [];
+    const erroresDetallados = [];
 
     let emptyKeyCount = 0;
     let invalidKeyCount = 0;
@@ -72,6 +159,13 @@ async function readAndFilterExcel(file) {
       }
 */
       }
+
+      // AQUÍ: Validar todos los campos de la fila
+      const erroresFila = validarCamposAfiliado(rowData, rowNumber);
+      if (erroresFila.length > 0) {
+        erroresDetallados.push(...erroresFila);
+        continue; // Saltar esta fila si tiene errores
+      }
       // Validación de clave elector
       const clave = rowData[6];
       if (!clave || clave.length !== 18) {
@@ -91,6 +185,15 @@ async function readAndFilterExcel(file) {
       }
     }
 
+    // Estructurar errores para el frontend
+    let mensajeErrores = '';
+    if (erroresDetallados.length > 0) {
+      mensajeErrores = 'Se encontraron los siguientes errores:\n';
+      erroresDetallados.forEach((error) => {
+        mensajeErrores += `Fila ${error.fila}: ${error.mensaje} (valor: "${error.valor}")\n`;
+      });
+    }
+
     return {
       rows: data,
       stats: {
@@ -101,6 +204,9 @@ async function readAndFilterExcel(file) {
         rowsWithDuplicateKeys, // cuántas filas duplicadas se descartaron
         duplicateKeysCount: duplicateKeys.size,
       },
+      tieneErrores: erroresDetallados.length > 0,
+      mensajeErrores: mensajeErrores,
+      erroresDetallados: erroresDetallados,
     };
   } catch (error) {
     throw new Error('Error al procesar el archivo Excel: ' + error.message);
@@ -265,11 +371,12 @@ async function registrarHistorialCarga(connection, casa, totalLeidos) {
       'SELECT COUNT(*) as total FROM afiliados WHERE casa = ?',
       [casa]
     );
-    
+
     const totalActual = totalRegistrosActuales[0].total;
-    
+
     // Insertar o actualizar registro en historial
-    await connection.query(`
+    await connection.query(
+      `
       INSERT INTO historial_carga (
         casa, 
         procesadas, 
@@ -280,12 +387,10 @@ async function registrarHistorialCarga(connection, casa, totalLeidos) {
         procesadas = VALUES(procesadas),
         total = VALUES(total),
         fecha_carga = NOW()
-    `, [
-      casa,
-      totalLeidos,
-      totalActual
-    ]);
-    
+    `,
+      [casa, totalLeidos, totalActual]
+    );
+
     return true;
   } catch (error) {
     console.error('Error al registrar historial de carga:', error);
@@ -307,7 +412,18 @@ async function uploadExcel(req, res) {
     }
 
     // 1. Proceso de lectura y filtrado
-    const { rows, stats } = await readAndFilterExcel(file);
+    const { rows, stats, tieneErrores, mensajeErrores, erroresDetallados } = await readAndFilterExcel(file);
+    
+    // Verificar si hay errores de validación y detener el proceso si los hay
+    if (tieneErrores) {
+      console.log("ERRORES DE VALIDACIÓN ENCONTRADOS:", mensajeErrores);
+      return res.status(400).json({
+        message: 'Existen errores en el archivo que impiden su procesamiento.',
+        tieneErrores: true,
+        mensajeErrores: mensajeErrores,
+        erroresDetallados: erroresDetallados
+      });
+    }
 
     // 2. Proceso de inserción temporal y luego a afiliados
     const {
@@ -325,13 +441,13 @@ async function uploadExcel(req, res) {
     if (rows.length > 0) {
       // Obtener la casa del primer registro
       const casa = rows[0][0];
-      
+
       // Obtener una conexión para el historial
       connection = await pool.getConnection();
-      
+
       // Llamar a la función refactorizada
       await registrarHistorialCarga(connection, casa, stats.totalRowsWithData);
-      
+
       connection.release();
     }
 
@@ -353,7 +469,7 @@ async function uploadExcel(req, res) {
     if (connection) {
       connection.release();
     }
-    
+
     return res.status(500).json({
       message: error.message || 'Error al procesar el archivo Excel.',
       error: error.toString(),

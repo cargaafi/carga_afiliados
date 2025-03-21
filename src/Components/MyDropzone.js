@@ -43,7 +43,7 @@ function MyDropzone() {
       alert('No hay archivos para subir');
       return;
     }
-
+  
     const usuario = user.username;
     try {
       setIsUploading(true);
@@ -51,35 +51,57 @@ function MyDropzone() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('usuario', usuario);
-
+  
       const res = await axios.post(`${API_URL}/uploadfile`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-
+  
       setUploadResult(res.data);
       setShowUploader(false); // Oculta el uploader después de subir
     } catch (error) {
       console.error('Error al subir el archivo:', error);
-
+  
       // Formatear el mensaje de error para la alerta
       let errorMessage = 'Error al subir el archivo.';
-
+      let errorDetails = '';
+  
       if (error.response && error.response.data) {
         errorMessage = error.response.data.message || errorMessage;
+        
+        // Verificar si hay mensajes de error detallados
+        if (error.response.data.mensajeErrores) {
+          errorDetails = error.response.data.mensajeErrores;
+        }
       } else if (error.message) {
-        // Para errores de red o otros errores que no vengan del servidor
+        // Para errores de red u otros errores que no vengan del servidor
         errorMessage = error.message;
       }
-
+  
       // Usar SweetAlert para mostrar el error
-      Swal.fire({
-        title: 'Error',
-        text: errorMessage,
-        icon: 'error',
-        confirmButtonColor: '#8f2e2e',
-      });
+      if (errorDetails) {
+        // Si hay detalles, mostrar un mensaje más elaborado
+        Swal.fire({
+          title: 'Error',
+          html: `
+            <p>${errorMessage}</p>
+            <div style="max-height: 300px; overflow-y: auto; text-align: left; margin-top: 15px; padding: 10px; background: #f8f8f8; border: 1px solid #e0e0e0;">
+              <pre style="white-space: pre-wrap; font-size: 0.9em;">${errorDetails}</pre>
+            </div>
+          `,
+          icon: 'error',
+          confirmButtonColor: '#8f2e2e',
+          width: '600px',
+        });
+      } else {
+        Swal.fire({
+          title: 'Error',
+          text: errorMessage,
+          icon: 'error',
+          confirmButtonColor: '#8f2e2e',
+        });
+      }
     } finally {
       setIsUploading(false);
     }
