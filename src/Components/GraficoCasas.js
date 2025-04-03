@@ -61,7 +61,7 @@ const GraficoCasas = () => {
         <MainGrid
           rows={casas.map((casa, index) => ({ id: index, ...casa }))}
           columns={columns}
-          fileNameVar='Casas_registradas'
+          fileNameVar='Registros Casas'
           idField='casa'
           showActions={false}
           defaultPageSize={50}
