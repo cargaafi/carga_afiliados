@@ -3,6 +3,241 @@ const mysql = require('mysql2');
 const pool = mysql.createPool(process.env.DATABASE_URL).promise();
 const ExcelJS = require('exceljs');
 
+async function insertIntoTempChunked(rows, usuario) {
+  let connection;
+  try {
+    if (!rows.length) {
+      return {
+        insertedCount: 0,
+        duplicatesInFile: 0,
+        duplicatesWithExisting: 0,
+        totalDuplicatedRecords: 0,
+      };
+    }
+
+    const startTime = Date.now(); // Tiempo de inicio
+    const totalRows = rows.length;
+    
+    function estimateRemainingTime(procesadosActualmente, tiempoTranscurrido) {
+      const registrosPorSegundo = procesadosActualmente / (tiempoTranscurrido / 1000);
+      const registrosRestantes = totalRows - procesadosActualmente;
+      const tiempoEstimadoRestante = registrosRestantes / registrosPorSegundo;
+      
+      const minutosRestantes = Math.floor(tiempoEstimadoRestante / 60);
+      const segundosRestantes = Math.round(tiempoEstimadoRestante % 60);
+      
+      console.log(`
+        Progreso: ${Math.round((procesadosActualmente / totalRows) * 100)}%
+        Velocidad: ${registrosPorSegundo.toFixed(2)} registros/segundo
+        Tiempo estimado restante: 
+        ${minutosRestantes} minutos ${segundosRestantes} segundos
+      `);
+    }
+
+    connection = await pool.getConnection();
+
+    // 1) Truncar fuera de cualquier transacción
+    await connection.query('TRUNCATE temp_afiliados');
+    console.log('Tabla truncada correctamente');
+
+    // Tamaño de chunk para archivos grandes
+    const chunkSize = 1000;
+    let insertedTemp = 0;
+    let successfulChunks = 0;
+    let failedChunks = 0;
+    const maxRetries = 3;
+
+    // Procesar cada chunk en su propia transacción
+    for (let i = 0; i < rows.length; i += chunkSize) {
+
+      const currentTime = Date.now();
+    
+      // Estimar tiempo restante
+      estimateRemainingTime(insertedTemp, currentTime - startTime);
+
+      const chunkNumber = Math.floor(i/chunkSize) + 1;
+      let retries = 0;
+      let success = false;
+      
+      // Intentar procesar el chunk con reintentos
+      while (!success && retries < maxRetries) {
+        try {
+          // Iniciar transacción para este chunk
+          await connection.beginTransaction();
+          
+          const chunk = rows.slice(i, i + chunkSize);
+          const values = chunk.map((r) => [
+            r[0],
+            r[1] ? r[1].toString().trim() : '',
+            r[2],
+            r[3],
+            r[4],
+            r[5],
+            r[6] ? r[6].toString().trim() : '',
+            r[7],
+            r[8],
+            r[9],
+            usuario,
+          ]);
+
+          await connection.query(
+            `INSERT INTO temp_afiliados (
+                casa,
+                clave_elector_afiliado,
+                apellido_paterno,
+                apellido_materno,
+                nombre,
+                telefono,
+                clave_elector,
+                seccion_electoral,
+                municipio,
+                entidad_federativa,
+                usuario_subida
+            ) VALUES ?`,
+            [values]
+          );
+          
+          // Commit de esta transacción
+          await connection.commit();
+          
+          insertedTemp += values.length;
+          successfulChunks++;
+          success = true;
+          console.log(`Chunk ${chunkNumber} procesado: ${values.length} registros`);
+          
+        } catch (chunkError) {
+          retries++;
+          // Rollback de esta transacción
+          try {
+            await connection.rollback();
+          } catch (rollbackError) {
+            console.error(`Error en rollback del chunk ${chunkNumber}:`, rollbackError);
+          }
+          
+          console.error(`Error en chunk ${chunkNumber}, intento ${retries}:`, chunkError.message);
+          
+          if (retries >= maxRetries) {
+            failedChunks++;
+            console.error(`Chunk ${chunkNumber} falló después de ${maxRetries} intentos.`);
+          } else {
+            // Pequeña pausa antes de reintentar
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            console.log(`Reintentando chunk ${chunkNumber}, intento ${retries + 1}...`);
+          }
+        }
+      }
+    }
+
+    console.log(`Proceso de chunks completado: ${successfulChunks} exitosos, ${failedChunks} fallidos, ${insertedTemp} registros totales`);
+
+    // Consultas para estadísticas en una transacción independiente
+    await connection.beginTransaction();
+    
+    const [duplicatesInFile] = await connection.query(`
+      SELECT COUNT(*) AS count 
+      FROM (
+          SELECT clave_elector 
+          FROM temp_afiliados 
+          GROUP BY clave_elector 
+          HAVING COUNT(*) > 1
+      ) AS dups
+    `);
+
+    const [totalDuplicatedRecords] = await connection.query(`
+      SELECT SUM(dup.count) AS total_registros_duplicados
+      FROM (
+          SELECT COUNT(*) - 1 AS count
+          FROM temp_afiliados
+          GROUP BY clave_elector
+          HAVING COUNT(*) > 1
+      ) AS dup;
+    `);
+
+    const [existingInMain] = await connection.query(`
+      SELECT COUNT(*) as count
+      FROM temp_afiliados t
+      INNER JOIN afiliados a ON t.clave_elector = a.clave_elector
+    `);
+
+    await connection.commit();
+    
+    // Inserción final en otra transacción
+    await connection.beginTransaction();
+    
+    const [insertResult] = await connection.query(`
+      INSERT INTO afiliados (
+          casa,
+          clave_elector_afiliado,
+          apellido_paterno,
+          apellido_materno,
+          nombre,
+          telefono,
+          clave_elector,
+          seccion_electoral,
+          municipio,
+          entidad_federativa,
+          usuario_subida
+      )
+      SELECT DISTINCT
+          t.casa,
+          t.clave_elector_afiliado,
+          t.apellido_paterno,
+          t.apellido_materno,
+          t.nombre,
+          t.telefono,
+          t.clave_elector,
+          t.seccion_electoral,
+          t.municipio,
+          t.entidad_federativa,
+          t.usuario_subida
+      FROM temp_afiliados t
+      WHERE t.clave_elector NOT IN (SELECT clave_elector FROM afiliados)
+      AND t.clave_elector IN (
+          SELECT clave_elector 
+          FROM temp_afiliados 
+          GROUP BY clave_elector 
+          HAVING COUNT(*) = 1
+      )
+    `);
+
+    await connection.commit();
+    connection.release();
+
+    return {
+      insertedCount: insertResult.affectedRows,
+      duplicatesInFile: duplicatesInFile[0].count,
+      duplicatesWithExisting: existingInMain[0].count,
+      totalDuplicatedRecords:
+        totalDuplicatedRecords[0].total_registros_duplicados || 0,
+      successfulChunks,
+      failedChunks
+    };
+  } catch (error) {
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error('Error en rollback general:', rollbackError);
+      }
+      connection.release();
+    }
+    throw new Error(`Error procesando datos: ${error.message}`);
+  }
+}
+
+async function processInsert(rows, usuario) {
+  // Determinar si es un archivo grande basado en la cantidad de registros
+  const isLargeFile = rows.length > 70000;
+  
+  if (isLargeFile) {
+    console.log(`Archivo grande (${rows.length} registros): usando transacciones por chunk`);
+    return await insertIntoTempChunked(rows, usuario);
+  } else {
+    console.log(`Archivo regular (${rows.length} registros): usando transacción única`);
+    return await insertIntoTemp(rows, usuario);
+  }
+}
+
 function validarCamposAfiliado(rowData, rowNumber) {
   const errores = [];
 
@@ -235,7 +470,7 @@ async function insertIntoTemp(rows, usuario) {
     await connection.beginTransaction();
 
     // Insertar en temp_afiliados en chunks
-    const chunkSize = 1500;
+    const chunkSize = 2400;
     let insertedTemp = 0;
 
     for (let i = 0; i < rows.length; i += chunkSize) {
@@ -431,7 +666,7 @@ async function uploadExcel(req, res) {
       duplicatesInFile,
       duplicatesWithExisting,
       totalDuplicatedRecords,
-    } = await insertIntoTemp(rows, usuario);
+    } = await processInsert(rows, usuario);
 
     // Calculamos duplicados totales = duplicados de lectura + duplicados detectados en temp
     const duplicadosTotales =
