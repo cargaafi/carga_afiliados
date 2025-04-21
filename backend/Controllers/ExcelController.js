@@ -235,7 +235,7 @@ async function insertIntoTemp(rows, usuario) {
     await connection.beginTransaction();
 
     // Insertar en temp_afiliados en chunks
-    const chunkSize = 3000;
+    const chunkSize = 1500;
     let insertedTemp = 0;
 
     for (let i = 0; i < rows.length; i += chunkSize) {
