@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import {
   Box,
@@ -14,7 +14,9 @@ import axios from 'axios';
 import { API_URL } from '../Config/Config';
 import { useAuth } from '../Components/AuthContext';
 import Swal from 'sweetalert2';
+import { LinearProgress } from '@mui/material';
 function MyDropzone() {
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [uploadResult, setUploadResult] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showUploader, setShowUploader] = useState(true);
@@ -31,6 +33,26 @@ function MyDropzone() {
       },
     });
 
+  // Nuevo hook para seguir el progreso
+  useEffect(() => {
+    let intervalId;
+    if (isUploading) {
+      intervalId = setInterval(async () => {
+        try {
+          const response = await axios.get(`${API_URL}/upload-progress`);
+          setUploadProgress(response.data);
+        } catch (error) {
+          console.error('Error obteniendo progreso:', error);
+          clearInterval(intervalId);
+        }
+      }, 3200);
+    }
+
+    // Limpiar intervalo al desmontar o cuando deje de subir
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isUploading]);
   // Función para resetear el componente
   const handleReset = () => {
     setUploadResult(null);
@@ -43,7 +65,7 @@ function MyDropzone() {
       alert('No hay archivos para subir');
       return;
     }
-  
+
     const usuario = user.username;
     try {
       setIsUploading(true);
@@ -51,25 +73,25 @@ function MyDropzone() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('usuario', usuario);
-  
+
       const res = await axios.post(`${API_URL}/uploadfile`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-  
+
       setUploadResult(res.data);
       setShowUploader(false); // Oculta el uploader después de subir
     } catch (error) {
       console.error('Error al subir el archivo:', error);
-  
+
       // Formatear el mensaje de error para la alerta
       let errorMessage = 'Error al subir el archivo.';
       let errorDetails = '';
-  
+
       if (error.response && error.response.data) {
         errorMessage = error.response.data.message || errorMessage;
-        
+
         // Verificar si hay mensajes de error detallados
         if (error.response.data.mensajeErrores) {
           errorDetails = error.response.data.mensajeErrores;
@@ -78,7 +100,7 @@ function MyDropzone() {
         // Para errores de red u otros errores que no vengan del servidor
         errorMessage = error.message;
       }
-  
+
       // Usar SweetAlert para mostrar el error
       if (errorDetails) {
         // Si hay detalles, mostrar un mensaje más elaborado
@@ -104,6 +126,7 @@ function MyDropzone() {
       }
     } finally {
       setIsUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -140,7 +163,7 @@ function MyDropzone() {
           </Box>
 
           {acceptedFiles.length > 0 && (
-            <Box sx={{ mt: 2}}>
+            <Box sx={{ mt: 2 }}>
               <Typography variant='h6'>Archivo(s) seleccionado(s):</Typography>
               <List sx={{ pl: 2 }}>
                 {acceptedFiles.map((file) => (
@@ -169,6 +192,58 @@ function MyDropzone() {
                 )}
               </Button>
             </Box>
+          )}
+
+          {isUploading && (
+            <>
+              {uploadProgress && uploadProgress.progress > 0 ? (
+                <Box sx={{ width: '100%', mt: 2 }}>
+                  <Typography
+                    variant='body2'
+                    color='text.secondary'
+                    align='center'
+                  >
+                    Progreso: {uploadProgress.progress}%
+                  </Typography>
+                  <LinearProgress
+                    variant='determinate'
+                    value={uploadProgress.progress}
+                    sx={{
+                      mt: 1,
+                      '& .MuiLinearProgress-bar1Determinate': {
+                        backgroundColor: '#8f2e2e',
+                        color: 'red'
+                      },
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      mt: 1,
+                    }}
+                  >
+                    <Typography variant='body2' color='text.secondary'>
+                      Velocidad: {uploadProgress.speed} registros/segundo
+                    </Typography>
+                    <Typography variant='body2' color='text.secondary'>
+                      Tiempo restante:{' '}
+                      {uploadProgress.estimatedRemaining.minutes} min{' '}
+                      {uploadProgress.estimatedRemaining.seconds} seg
+                    </Typography>
+                  </Box>
+                </Box>
+              ) : (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    mt: 2,
+                  }}
+                ></Box>
+              )}
+            </>
           )}
         </Box>
       ) : null}

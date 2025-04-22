@@ -11,6 +11,7 @@ const cors = require('cors');
 const getDataController = require('./Controllers/GetFuncData');
 const PostDataController = require('./Controllers/PostFuncData');
 const ExcelController = require('./Controllers/ExcelController');
+const progressManager = require('./Controllers/Progress');
 //multer
 const upload = multer({ dest: 'uploads/' });
 const jwt = require('jsonwebtoken');
@@ -47,8 +48,39 @@ const limiter = rateLimit({
 //limitador de tasa a todas las rutas
 app.use(limiter);
 
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://carga-afiliados.onrender.com'
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // permite requests sin origen (como mobile apps o curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'El origen CORS no está permitido.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+}));
 app.use(express.json());
+
+// Rate limiter específico para barra de progreso
+const progressLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300, // Permite 300 requests en 15 minutos 
+});
+
+app.get('/upload-progress',progressLimiter, (req, res) => {
+  res.json(progressManager.getProgress());
+});
 
 app.post('/loginUsers', authenticateToken, PostDataController.loginUsers__); // Login para obtener el token
 app.get('/getUserList', authenticateToken, getDataController.listUsers__); // Lista de ususarios
@@ -79,9 +111,6 @@ app.delete(
 ); //delete Archivos por id
 */
 
-//app.post('/uploadfile', upload.single('file'), txtController.execFuncsTxt);
-
-//app.post('/updateTxt', upload.single('file'), txtController.execUpdateTxt);
 
 app.listen(port, () => {
   console.log('servidor funcionando en el puerto ' + port);
