@@ -1,12 +1,47 @@
-require('dotenv').config();
-const mysql = require('mysql2');
+require("dotenv").config();
+const mysql = require("mysql2");
 const pool = mysql
   .createPool({
     uri: process.env.DATABASE_URL,
   })
   .promise();
-const ExcelJS = require('exceljs');
-const progressManager = require('./Progress');
+const ExcelJS = require("exceljs");
+const progressManager = require("./Progress");
+
+function limpiarTextoCorrupto(texto) {
+  if (!texto || typeof texto !== "string") return texto;
+
+  return texto
+    .replace(/Ã¡/g, "á")
+    .replace(/Ã©/g, "é")
+    .replace(/Ã­/g, "í")
+    .replace(/Ã³/g, "ó")
+    .replace(/Ãº/g, "ú")
+    .replace(/Ã±/g, "ñ")
+    .replace(/Ã/g, "Á")
+    .replace(/Ã‰/g, "É")
+    .replace(/Ã/g, "Í")
+    .replace(/Ã“/g, "Ó")
+    .replace(/Ãš/g, "Ú")
+    .replace(/Ã‘/g, "Ñ")
+    .replace(/Ãœ/g, "Ü")
+    .replace(/Ã‹/g, "Ë")
+    .replace(/ÃƒÂ¡/g, "á")
+    .replace(/ÃƒÂ©/g, "é")
+    .replace(/ÃƒÂ­/g, "í")
+    .replace(/ÃƒÂ³/g, "ó")
+    .replace(/ÃƒÂº/g, "ú")
+    .replace(/ÃƒÂ±/g, "ñ")
+    .replace(/Ãƒâ€˜/g, "Ñ")
+    .replace(/Ãƒâ€°/g, "É")
+    .replace(/ÃƒÂ­a/g, "ía")
+    .replace(/ÃƒÂ/g, "Á")
+    .replace(/ÃƒÂ/g, "Í")
+    .replace(/ÃƒÂš/g, "Ú")
+    .replace(/nÌˆ/g, "ñ")
+    .replace(/Ìˆ/g, "")
+    .replace(/Â /g, " ");
+}
 
 async function insertIntoTempChunked(rows, usuario) {
   let connection;
@@ -44,8 +79,8 @@ async function insertIntoTempChunked(rows, usuario) {
 
     // Obtener una conexión para truncar
     connection = await pool.getConnection();
-    await connection.query('TRUNCATE temp_afiliados');
-    console.log('Tabla truncada correctamente');
+    await connection.query("TRUNCATE temp_afiliados");
+    console.log("Tabla truncada correctamente");
     connection.release();
     connection = null;
 
@@ -73,12 +108,12 @@ async function insertIntoTempChunked(rows, usuario) {
           const chunk = rows.slice(i, i + chunkSize);
           const values = chunk.map((r) => [
             r[0],
-            r[1] ? r[1].toString().trim() : '',
+            r[1] ? r[1].toString().trim() : "",
             r[2],
             r[3],
             r[4],
             r[5],
-            r[6] ? r[6].toString().trim() : '',
+            r[6] ? r[6].toString().trim() : "",
             r[7],
             r[8],
             r[9],
@@ -150,8 +185,10 @@ async function insertIntoTempChunked(rows, usuario) {
         }
       }
     }
-    
-     console.log(`Proceso de chunks completado: ${successfulChunks} exitosos, ${failedChunks} fallidos, ${insertedTemp} registros totales`);
+
+    console.log(
+      `Proceso de chunks completado: ${successfulChunks} exitosos, ${failedChunks} fallidos, ${insertedTemp} registros totales`
+    );
 
     // Obtener nueva conexión para estadísticas
     let statsConnection;
@@ -183,7 +220,6 @@ async function insertIntoTempChunked(rows, usuario) {
         FROM temp_afiliados t
         INNER JOIN afiliados a ON t.clave_elector = a.clave_elector
       `);
-
 
       // Inserción final
       await statsConnection.beginTransaction();
@@ -250,7 +286,7 @@ async function insertIntoTempChunked(rows, usuario) {
           statsConnection.release();
         } catch (releaseError) {
           console.error(
-            'Error liberando conexión de estadísticas:',
+            "Error liberando conexión de estadísticas:",
             releaseError
           );
         }
@@ -262,7 +298,7 @@ async function insertIntoTempChunked(rows, usuario) {
       try {
         connection.release();
       } catch (releaseError) {
-        console.error('Error liberando conexión principal:', releaseError);
+        console.error("Error liberando conexión principal:", releaseError);
       }
     }
     throw new Error(`Error procesando datos: ${error.message}`);
@@ -292,48 +328,48 @@ function validarCamposAfiliado(rowData, rowNumber) {
   const restricciones = {
     casa: {
       maxLength: 2,
-      tipo: 'char',
+      tipo: "char",
       indice: 0,
-      nombre: 'Casa',
+      nombre: "Casa",
       requerido: true,
     },
     claveElectorAfiliado: {
       maxLength: 50,
-      tipo: 'varchar',
+      tipo: "varchar",
       indice: 1,
-      nombre: 'Clave de Elector del Afiliado',
+      nombre: "Clave de Elector del Afiliado",
     },
     apellidoPaterno: {
       maxLength: 250,
-      tipo: 'varchar',
+      tipo: "varchar",
       indice: 2,
-      nombre: 'Apellido Paterno',
+      nombre: "Apellido Paterno",
     },
     apellidoMaterno: {
       maxLength: 250,
-      tipo: 'varchar',
+      tipo: "varchar",
       indice: 3,
-      nombre: 'Apellido Materno',
+      nombre: "Apellido Materno",
     },
-    nombre: { maxLength: 250, tipo: 'varchar', indice: 4, nombre: 'Nombre' },
-    telefono: { maxLength: 20, tipo: 'varchar', indice: 5, nombre: 'Teléfono' },
+    nombre: { maxLength: 250, tipo: "varchar", indice: 4, nombre: "Nombre" },
+    telefono: { maxLength: 20, tipo: "varchar", indice: 5, nombre: "Teléfono" },
     seccionElectoral: {
       length: 4,
-      tipo: 'char',
+      tipo: "char",
       indice: 7,
-      nombre: 'Sección Electoral',
+      nombre: "Sección Electoral",
     },
     municipio: {
       maxLength: 250,
-      tipo: 'varchar',
+      tipo: "varchar",
       indice: 8,
-      nombre: 'Municipio',
+      nombre: "Municipio",
     },
     entidadFederativa: {
       maxLength: 250,
-      tipo: 'varchar',
+      tipo: "varchar",
       indice: 9,
-      nombre: 'Entidad Federativa',
+      nombre: "Entidad Federativa",
     },
   };
 
@@ -341,7 +377,7 @@ function validarCamposAfiliado(rowData, rowNumber) {
   Object.keys(restricciones).forEach((campo) => {
     const restriccion = restricciones[campo];
     const valor = rowData[restriccion.indice];
-    const valorStr = valor ? valor.toString().trim() : '';
+    const valorStr = valor ? valor.toString().trim() : "";
 
     // Verificar si es un campo requerido
     if (restriccion.requerido && !valorStr) {
@@ -396,7 +432,7 @@ async function readAndFilterExcel(file) {
 
       let hasData = false;
       for (let i = 2; i <= 11; i++) {
-        if (row.getCell(i).value !== null && row.getCell(i).value !== '') {
+        if (row.getCell(i).value !== null && row.getCell(i).value !== "") {
           hasData = true;
           break;
         }
@@ -407,20 +443,19 @@ async function readAndFilterExcel(file) {
         continue;
       }
 
-      const rowData = [
-        row.getCell(2).value, // B: Casa
-        row.getCell(3).value, // C: Clave de Elector del Afiliado
-        row.getCell(4).value, // D: Apellido Paterno
-        row.getCell(5).value, // E: Apellido Materno
-        row.getCell(6).value, // F: Nombre
-        row.getCell(7).value, // G: Teléfono
-        row.getCell(8).value
-          ? row.getCell(8).value.toString().trim().toUpperCase()
-          : '', // H: Clave elector
-        row.getCell(9).value, // I: Sección Electoral
-        row.getCell(10).value, // J: Municipio
-        row.getCell(11).value, // K: Entidad Federativa
-      ];
+  const rowData = [
+      row.getCell(2).value, // B: Casa (sin limpiar)
+      row.getCell(3).value, // C: Clave de Elector del Afiliado (sin limpiar)
+      limpiarTextoCorrupto(row.getCell(4).value?.toString().trim()), // D: Apellido Paterno
+      limpiarTextoCorrupto(row.getCell(5).value?.toString().trim()), // E: Apellido Materno
+      limpiarTextoCorrupto(row.getCell(6).value?.toString().trim()), // F: Nombre
+      row.getCell(7).value?.toString().trim(), // G: Teléfono (sin limpiar)
+      row.getCell(8) ? row.getCell(8).value.toString().trim().toUpperCase() : '', // H: Clave elector (sin limpiar)
+      row.getCell(9).value, // I: Sección Electoral (sin limpiar)
+      limpiarTextoCorrupto(row.getCell(10).value?.toString().trim()), // J: Municipio
+      limpiarTextoCorrupto(row.getCell(11).value?.toString().trim()), // K: Entidad Federativa
+    ];
+
 
       totalRowsWithData++;
 
@@ -468,9 +503,9 @@ async function readAndFilterExcel(file) {
     }
 
     // Estructurar errores para el frontend
-    let mensajeErrores = '';
+    let mensajeErrores = "";
     if (erroresDetallados.length > 0) {
-      mensajeErrores = 'Se encontraron los siguientes errores:\n';
+      mensajeErrores = "Se encontraron los siguientes errores:\n";
       erroresDetallados.forEach((error) => {
         mensajeErrores += `Fila ${error.fila}: ${error.mensaje} (valor: "${error.valor}")\n`;
       });
@@ -491,7 +526,7 @@ async function readAndFilterExcel(file) {
       erroresDetallados: erroresDetallados,
     };
   } catch (error) {
-    throw new Error('Error al procesar el archivo Excel: ' + error.message);
+    throw new Error("Error al procesar el archivo Excel: " + error.message);
   }
 }
 
@@ -510,8 +545,8 @@ async function insertIntoTemp(rows, usuario) {
     connection = await pool.getConnection();
 
     // 1) Truncar fuera de la transacción
-    await connection.query('TRUNCATE temp_afiliados');
-    console.log('Tabla truncada correctamente');
+    await connection.query("TRUNCATE temp_afiliados");
+    console.log("Tabla truncada correctamente");
 
     // 2) Iniciar la transacción
     await connection.beginTransaction();
@@ -524,12 +559,12 @@ async function insertIntoTemp(rows, usuario) {
       const chunk = rows.slice(i, i + chunkSize);
       const values = chunk.map((r) => [
         r[0],
-        r[1] ? r[1].toString().trim() : '',
+        r[1] ? r[1].toString().trim() : "",
         r[2],
         r[3],
         r[4],
         r[5],
-        r[6] ? r[6].toString().trim() : '',
+        r[6] ? r[6].toString().trim() : "",
         r[7],
         r[8],
         r[9],
@@ -638,7 +673,7 @@ async function insertIntoTemp(rows, usuario) {
       try {
         await connection.rollback();
       } catch (rollbackError) {
-        console.error('Error en rollback:', rollbackError);
+        console.error("Error en rollback:", rollbackError);
       }
       connection.release();
     }
@@ -650,7 +685,7 @@ async function registrarHistorialCarga(connection, casa, totalLeidos) {
   try {
     // Total actual en la base principal
     const [totalRegistrosActuales] = await connection.query(
-      'SELECT COUNT(*) as total FROM afiliados WHERE casa = ?',
+      "SELECT COUNT(*) as total FROM afiliados WHERE casa = ?",
       [casa]
     );
 
@@ -675,7 +710,7 @@ async function registrarHistorialCarga(connection, casa, totalLeidos) {
 
     return true;
   } catch (error) {
-    console.error('Error al registrar historial de carga:', error);
+    console.error("Error al registrar historial de carga:", error);
     return false;
   }
 }
@@ -687,10 +722,10 @@ async function uploadExcel(req, res) {
     const usuario = req.body.usuario;
 
     if (!file) {
-      throw new Error('No se recibió ningún archivo');
+      throw new Error("No se recibió ningún archivo");
     }
     if (!usuario) {
-      throw new Error('No se recibió el usuario');
+      throw new Error("No se recibió el usuario");
     }
 
     // 1. Proceso de lectura y filtrado
@@ -699,9 +734,9 @@ async function uploadExcel(req, res) {
 
     // Verificar si hay errores de validación y detener el proceso si los hay
     if (tieneErrores) {
-      console.log('ERRORES DE VALIDACIÓN ENCONTRADOS:', mensajeErrores);
+      console.log("ERRORES DE VALIDACIÓN ENCONTRADOS:", mensajeErrores);
       return res.status(400).json({
-        message: 'Existen errores en el archivo que impiden su procesamiento.',
+        message: "Existen errores en el archivo que impiden su procesamiento.",
         tieneErrores: true,
         mensajeErrores: mensajeErrores,
         erroresDetallados: erroresDetallados,
@@ -735,7 +770,7 @@ async function uploadExcel(req, res) {
     }
 
     return res.json({
-      message: 'Archivo procesado correctamente.',
+      message: "Archivo procesado correctamente.",
       totalFilasConDatos: stats.totalRowsWithData,
       claveElectorVacia: stats.emptyKeyCount,
       claveElectorInvalida: stats.invalidKeyCount,
@@ -754,7 +789,7 @@ async function uploadExcel(req, res) {
     }
 
     return res.status(500).json({
-      message: error.message || 'Error al procesar el archivo Excel.',
+      message: error.message || "Error al procesar el archivo Excel.",
       error: error.toString(),
     });
   }
