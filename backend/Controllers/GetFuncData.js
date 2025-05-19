@@ -1,6 +1,58 @@
 require('dotenv').config();
 const mysql = require('mysql2');
 const pool = mysql.createPool(process.env.DATABASE_URL).promise();
+const { Parser } = require('json2csv');
+
+async function exportAfiliadosExcel__(req, res) {
+  try {
+    const maxChunkSize = 100000;
+
+    // 1. Obtener total de registros
+    const [[{ total }]] = await pool.query('SELECT COUNT(*) as total FROM afiliados');
+    if (total === 0) {
+      return res.status(400).send('No hay datos para exportar');
+    }
+
+    const totalChunks = Math.ceil(total / maxChunkSize);
+    const allRows = [];
+
+    console.log(`Exportando ${total} registros en ${totalChunks} bloques`);
+
+    // 2. Obtener todos los registros en chunks
+    for (let i = 0; i < totalChunks; i++) {
+      const offset = i * maxChunkSize;
+      const [chunk] = await pool.query(
+        'SELECT * FROM afiliados LIMIT ? OFFSET ?',
+        [maxChunkSize, offset]
+      );
+      allRows.push(...chunk);
+    }
+
+    // 3. Excluir columnas específicas
+    const excludedFields = ['fecha_subida', 'usuario_subida', 'telefono'];
+
+    const cleanedRows = allRows.map(row => {
+      const newRow = { ...row };
+      excludedFields.forEach(field => delete newRow[field]);
+      return newRow;
+    });
+
+    // 4. Generar CSV
+    const parser = new Parser({
+      delimiter: ',',
+    });
+    const csv = parser.parse(cleanedRows);
+
+    // 5. Enviar el archivo
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=Afiliados_Total.csv');
+    res.status(200).send('\uFEFF' + csv);
+
+  } catch (err) {
+    console.error('Error al exportar afiliados:', err);
+    res.status(500).send('Error al generar el archivo CSV');
+  }
+}
 
 
 
@@ -137,5 +189,6 @@ module.exports = {
   getAfiliados___,
   getGraficoCasas__,
   getReporteCompleto,
-  listUsers__
+  listUsers__,
+  exportAfiliadosExcel__
 };

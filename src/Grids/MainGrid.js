@@ -1,5 +1,6 @@
 // Asegúrate de que estos imports están correctos
-import * as React from 'react';
+import * as React  from 'react';
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import {
@@ -18,6 +19,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Close';
+import { Button,CircularProgress } from '@mui/material';
+import DownloadIcon from '@mui/icons-material/Download';
+import { API_URL } from '../Config/Config';
 
 // Tema para DataGrid con idioma español
 const theme = createTheme(
@@ -164,17 +168,54 @@ const theme = createTheme(
   },
   esES // Localización en español
 );
-
 // Ejemplo de CustomToolbar para exportar y demás
-function CustomToolbar({ fileNameVar }) {
+function CustomToolbar() {
+  const [loading, setLoading] = useState(false);
+
+  const handleDownloadCSV = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/exportAfiliadosExcel`);
+      if (!response.ok) throw new Error('Error al generar el archivo');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'Total_Afiliados.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error en descarga:', error);
+      alert('Error al descargar el archivo');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <GridToolbarContainer
       sx={{ '.MuiButton-root': { color: '#4f5658', fontWeight: 'bold' } }}
     >
-      <GridToolbarExport
-        csvOptions={{ fileName: fileNameVar, utf8WithBom: true }}
-      />
       <GridToolbarFilterButton />
+      <Button
+        onClick={handleDownloadCSV}
+        startIcon={!loading && <DownloadIcon />}
+        disabled={loading}
+        sx={{ ml: 1 }}
+      >
+        {loading ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CircularProgress size={16} color="inherit" />
+            Generando...
+          </Box>
+        ) : (
+          'CSV completo'
+        )}
+      </Button>
     </GridToolbarContainer>
   );
 }
@@ -240,7 +281,6 @@ export default function MainGrid({
   };
 
   // Función para procesar la actualización de una fila editada.
-  // Aquí podrías llamar a tu API para actualizar el registro en el back.
   const processRowUpdate = (newRow) => {
     const updatedRow = { ...newRow, isNew: false };
     setGridRows((prevRows) =>

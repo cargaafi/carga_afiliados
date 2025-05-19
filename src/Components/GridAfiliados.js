@@ -5,7 +5,7 @@ import Swal from 'sweetalert2';
 import axios from 'axios';
 import { API_URL } from '../Config/Config';
 import { useAuth } from '../Components/AuthContext';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 
 function GridAfiliados() {
@@ -23,16 +23,9 @@ function GridAfiliados() {
   const getCargaData__ = async (page = 0, pageSize = 20) => {
     setLoading(true);
     try {
-      console.log(`Solicitando página ${page + 1} con ${pageSize} registros`);
       const response = await axios.get(`${API_URL}/getAfiliados`, {
         params: { usuario: user.username, page: page + 1, limit: pageSize }, // Paginación
       });
-
-      console.log("Respuesta del servidor:", {
-        dataLength: response.data.data.length,
-        total: response.data.total
-      });
-
       setCarga(response.data.data);
       setTotal(response.data.total);
     } catch (err) {

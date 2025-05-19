@@ -84,7 +84,9 @@ app.get('/upload-progress',progressLimiter, (req, res) => {
 
 app.post('/loginUsers', authenticateToken, PostDataController.loginUsers__); // Login para obtener el token
 app.get('/getUserList', authenticateToken, getDataController.listUsers__); // Lista de ususarios
-app.get('/getAfiliados', getDataController.getAfiliados___); // Lista de afiliados
+app.get('/getAfiliados', authenticateToken, getDataController.getAfiliados___); // Lista de afiliados
+app.get('/exportAfiliadosExcel', getDataController.exportAfiliadosExcel__); // Lista de afiliados
+
 app.get('/getReporteCompleto', authenticateToken, getDataController.getReporteCompleto);
 app.get('/getGraficoCasas', authenticateToken, getDataController.getGraficoCasas__);
 
