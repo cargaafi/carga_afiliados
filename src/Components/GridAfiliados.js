@@ -113,6 +113,7 @@ return (
           showActions={false}
           loading={loading}
           paginationMode='server'
+          showFullExport={true}
           rowCount={total}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}

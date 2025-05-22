@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Box, useTheme, ThemeProvider } from '@mui/material';
 import { API_URL } from '../Config/Config';
-import MainGrid from '../Grids/MainGrid';
+import MainGridBase from '../Grids/MainGridBase';
 
 const GraficoCasas = () => {
   const [casas, setCasas] = useState([]);
@@ -58,7 +58,7 @@ const GraficoCasas = () => {
           boxShadow: 3,
         }}
       >
-        <MainGrid
+        <MainGridBase
           rows={casas.map((casa, index) => ({ id: index, ...casa }))}
           columns={columns}
           fileNameVar='Registros Casas'
