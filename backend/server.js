@@ -50,24 +50,28 @@ app.use(limiter);
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://carga-afiliados.onrender.com'
+  'http://localhost:3001',
+  'http://localhost:5022',
+  'https://carga-afiliados.onrender.com',      // frontend (Render)
+  'https://carga-afiliados-back.onrender.com'  // backend (Render)
 ];
 
 app.use(cors({
-  origin: function(origin, callback) {
-    // permite requests sin origen (como mobile apps o curl)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'El origen CORS no está permitido.';
-      return callback(new Error(msg), false);
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // para Postman o llamadas directas
+
+    const isAllowed = allowedOrigins.some(o => origin.startsWith(o));
+
+    if (!isAllowed) {
+      console.warn('CORS bloqueado para origen:', origin);
+      return callback(new Error('El origen CORS no está permitido.'), false);
     }
+
     return callback(null, true);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-  preflightContinue: false,
   optionsSuccessStatus: 204
 }));
 app.use(express.json());
