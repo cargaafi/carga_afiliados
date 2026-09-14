@@ -5,8 +5,7 @@ import Swal from 'sweetalert2';
 import axios from 'axios';
 import { API_URL } from '../Config/Config';
 import { useAuth } from '../Components/AuthContext';
-import { Box, Typography, Button } from '@mui/material';
-import Grid from '@mui/material/Grid2';
+import { Box, Typography } from '@mui/material';
 
 function GridAfiliados() {
   const [carga, setCarga] = useState([]);
@@ -88,40 +87,29 @@ function GridAfiliados() {
   }));
 
 return (
-  <Box
-    sx={{
-      width: '99%',
-      p:2.2
-    }}
-  >
-    <Grid container spacing={1}>
-      <Grid size={{ xs: 2.5, sm: 4, md: 6, lg: 10 }}>
-        <Typography
-          variant='h4'
-          sx={{ color: '#8f2e2e', mb: 1, textAlign: 'center' }}
-        >
-          Registros de Afiliados
-        </Typography>
-      </Grid>
-    </Grid>
-    <Grid container spacing={0} size={50}>
-      <Grid size={{ xs: 2.5, sm: 4.5, md: 6, lg: 10 }}>
-        <MainGrid
-          rows={rows}
-          columns={mainColumns()}
-          fileNameVar='Afiliados_cargados'
-          showActions={false}
-          loading={loading}
-          paginationMode='server'
-          showFullExport={true}
-          rowCount={total}
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          pageSizeOptions={[20, 50, 100]} 
-          keepNonExistentRowsSelected
-        />
-      </Grid>
-    </Grid>
+  <Box sx={{ width: '100%', minWidth: 0, maxWidth: '100%', p: { xs: 1.5, md: 2.2 } }}>
+    <Typography
+      variant='h4'
+      sx={{ color: '#8f2e2e', mb: 2, textAlign: 'center' }}
+    >
+      Registros de Afiliados
+    </Typography>
+    <Box sx={{ width: '100%', minWidth: 0, maxWidth: '100%' }}>
+      <MainGrid
+        rows={rows}
+        columns={mainColumns()}
+        fileNameVar='Afiliados_cargados'
+        showActions={false}
+        loading={loading}
+        paginationMode='server'
+        showFullExport={true}
+        rowCount={total}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        pageSizeOptions={[20, 50, 100]}
+        keepNonExistentRowsSelected
+      />
+    </Box>
   </Box>
 );
 }

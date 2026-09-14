@@ -28,6 +28,17 @@ body {
     /* Gris claro, por ejemplo */
 }
 
+/* El <main> del DashboardLayout de Toolpad y su contenedor son flex items con
+   min-width:auto, asi que el ancho minimo de las grillas (columnas fijas) los
+   estira y las paginas se desbordan del viewport. min-width:0 los deja encoger. */
+main {
+    min-width: 0;
+}
+
+.MuiBox-root:has(> main) {
+    min-width: 0;
+}
+
 .ClaseDeTuBoton {
     color: #fff !important;
     border-color: #8f2e2e !important;

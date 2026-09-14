@@ -4,8 +4,7 @@ import {
   Card,
   CardContent,
   Typography,
-  Tabs,
-  Tab,
+  Chip,
   CircularProgress,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
@@ -16,6 +15,10 @@ import { useAuth } from '../Components/AuthContext';
 import Swal from 'sweetalert2';
 import Grid from '@mui/material/Grid2';
 import GraficoCasas from './GraficoCasas';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import HomeWorkOutlinedIcon from '@mui/icons-material/HomeWorkOutlined';
+import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
+import GridViewOutlinedIcon from '@mui/icons-material/GridViewOutlined';
 import { esES } from '@mui/x-data-grid/locales';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 //import TreemapCasas from './TreemapCasas';
@@ -30,10 +33,59 @@ function ReporteUsuarios() {
   const [usuariosActivos, setUsuariosActivos] = useState(0);
   const [casasActivas, setCasasActivas] = useState(0);
   const [promedioPorCasa, setPromedioPorCasa] = useState(0);
-  const [tabValue, setTabValue] = useState(0);
-  const [tabValueGrafico, setTabValueGrafico] = useState(0);
 
   //const { user } = useAuth();
+
+  const cardSx = {
+    borderRadius: 3,
+    boxShadow:
+      '0 12px 30px -18px rgba(143,46,46,0.28), 0 2px 12px rgba(17,17,17,0.06)',
+  };
+
+  const kpiChipSx = {
+    width: 32,
+    height: 32,
+    borderRadius: '9px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    backgroundColor: 'rgba(143,46,46,0.14)',
+    color: '#8f2e2e',
+  };
+
+  const widgetHeadSx = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 1,
+    mb: 1.5,
+  };
+
+  const widgetTitleSx = { fontSize: 13.5, fontWeight: 600 };
+
+  const widgetMetaSx = { fontSize: 11, color: 'text.secondary' };
+
+  const emptyTextSx = {
+    fontSize: 12.5,
+    color: 'text.secondary',
+    textAlign: 'center',
+    py: 4,
+  };
+
+  const bordeauxPalette = [
+    '#8f2e2e',
+    '#b1503f',
+    '#c96a56',
+    '#d98f6f',
+    '#e8b18a',
+    '#6b3232',
+    '#9c3737',
+    '#4f5658',
+    '#787878',
+    '#a3a3a3',
+  ];
+
   // Tema para DataGrid con idioma español
   const theme = createTheme(
     {
@@ -224,14 +276,6 @@ function ReporteUsuarios() {
     getReporteCompleto();
   }, []);
 
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
-  };
-
-  const handleTabChangeGrafico = (event, newValue) => {
-    setTabValueGrafico(newValue);
-  };
-
   // Definición de columnas para el DataGrid de Usuarios
   const userColumns = [
     { field: 'usuario_subida', headerName: 'Usuario', flex: 1 },
@@ -276,51 +320,55 @@ function ReporteUsuarios() {
     },
   ];
 
-  // Configuración del gráfico de usuarios
-  const userChartOptions = {
+  // Chrome minimo compartido por los graficos de barras del tablero
+  const barChartBase = {
     chart: {
       type: 'bar',
-      height: 350,
       toolbar: { show: false },
+      background: 'transparent',
+      fontFamily: 'inherit',
     },
     plotOptions: {
       bar: {
         horizontal: true,
-        barHeight: '50%',
+        barHeight: '62%',
+        borderRadius: 4,
         distributed: true,
         dataLabels: { position: 'bottom' },
       },
     },
-    colors: [
-      '#8f2e2e',
-      '#00E396',
-      '#FEB019',
-      '#FF4560',
-      '#775DD0',
-      '#3F51B5',
-      '#546E7A',
-      '#D7263D',
-      '#02A9F4',
-      '#66BB6A',
-    ],
+    colors: bordeauxPalette,
     dataLabels: {
       enabled: true,
       textAnchor: 'start',
-      style: { colors: ['#fff'] },
+      style: { colors: ['#fff'], fontSize: '11px', fontWeight: 700 },
       formatter: (val) => val,
       offsetX: 0,
     },
-    stroke: { width: 1, colors: ['#fff'] },
-    xaxis: { categories: topUsers.map((user) => user.usuario_subida) },
-    yaxis: { labels: { show: true } },
-    title: {
-      text: 'Por registros Cargados',
-      align: 'center',
-      style: { fontSize: '16px' },
-    },
+    stroke: { width: 0 },
+    legend: { show: false },
+    grid: { show: false, padding: { left: 8, right: 8, top: -8, bottom: -8 } },
     tooltip: {
       theme: 'dark',
       y: { title: { formatter: () => 'Registros:' } },
+    },
+  };
+
+  // Configuración del gráfico de usuarios
+  const userChartOptions = {
+    ...barChartBase,
+    xaxis: {
+      categories: topUsers.map((user) => user.usuario_subida),
+      labels: { show: false },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+    },
+    yaxis: {
+      labels: {
+        show: true,
+        maxWidth: 160,
+        style: { colors: '#9aa0a7', fontSize: '11px' },
+      },
     },
   };
 
@@ -333,49 +381,19 @@ function ReporteUsuarios() {
 
   // Configuración del gráfico de casas
   const casaChartOptions = {
-    chart: {
-      type: 'bar',
-      height: 350,
-      toolbar: { show: false },
+    ...barChartBase,
+    xaxis: {
+      categories: topCasas.map((casa) => casa.casa),
+      labels: { show: false },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
     },
-    plotOptions: {
-      bar: {
-        horizontal: true,
-        barHeight: '50%',
-        distributed: true,
-        dataLabels: { position: 'bottom' },
+    yaxis: {
+      labels: {
+        show: true,
+        maxWidth: 160,
+        style: { colors: '#9aa0a7', fontSize: '11px' },
       },
-    },
-    colors: [
-      '#3F51B5',
-      '#00E396',
-      '#FEB019',
-      '#FF4560',
-      '#775DD0',
-      '#8f2e2e',
-      '#546E7A',
-      '#D7263D',
-      '#02A9F4',
-      '#66BB6A',
-    ],
-    dataLabels: {
-      enabled: true,
-      textAnchor: 'start',
-      style: { colors: ['#fff'] },
-      formatter: (val) => val,
-      offsetX: 0,
-    },
-    stroke: { width: 1, colors: ['#fff'] },
-    xaxis: { categories: topCasas.map((casa) => casa.casa) },
-    yaxis: { labels: { show: true } },
-    title: {
-      text: 'Por Casa',
-      align: 'center',
-      style: { fontSize: '16px' },
-    },
-    tooltip: {
-      theme: 'dark',
-      y: { title: { formatter: () => 'Registros:' } },
     },
   };
 
@@ -388,116 +406,109 @@ function ReporteUsuarios() {
 
   return (
     <>
-      <Box sx={{ p: 1, maxWidth: 'lg', mx: 'auto', width: '100%' }}>
-        {/* Título */}
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid size={{ xs: 12, sm: 12, md: 12 }}>
-            <Typography
-              variant='h4'
-              sx={{ color: '#8f2e2e', mb: 4, textAlign: 'center' }}
-            >
-              Reporte Casas
-            </Typography>
-          </Grid>
-        </Grid>
+      <Box sx={{ p: { xs: 1.5, md: 2 }, maxWidth: 1400, mx: 'auto', width: '100%' }}>
+        {/* Encabezado */}
+        <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <Typography sx={{ fontSize: 27, fontWeight: 700, color: '#8f2e2e', m: 0 }}>
+            Reporte Casas
+          </Typography>
+          <Typography sx={{ fontSize: 14, color: 'text.secondary', mt: 0.5 }}>
+            Estado general de la carga de afiliados por casa
+          </Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              mt: 1.5,
+            }}
+          >
+            <Chip size='small' variant='outlined' label={`${casasActivas} casas activas`} />
+            <Chip size='small' variant='outlined' label={`${usuariosActivos} usuarios con carga`} />
+          </Box>
+        </Box>
 
-        {/* Tarjetas centradas */}
-        <Grid container spacing={2} sx={{ mb: 4 }}>
-          <Grid size={{ xs: 12, sm: 12, md: 6 }}>
-            <Card>
-              <CardContent>
-                <Typography variant='h6' color='text.secondary'>
-                  Total de Registros
-                </Typography>
-                {loading ? (
-                  <Box
-                    sx={{ display: 'flex', justifyContent: 'center', py: 2 }}
-                  >
-                    <CircularProgress style={{ color: '#8f2e2e' }} />
+        {/* Tarjetas de KPIs */}
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={cardSx}>
+              <CardContent sx={{ p: '16px 18px !important' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 500 }}>
+                    Total de Registros
+                  </Typography>
+                  <Box sx={kpiChipSx}>
+                    <DescriptionOutlinedIcon sx={{ fontSize: 17 }} />
                   </Box>
+                </Box>
+                {loading ? (
+                  <CircularProgress size={24} style={{ color: '#8f2e2e' }} />
                 ) : (
-                  <Typography variant='h4'>
+                  <Typography sx={{ fontSize: 25, fontWeight: 700 }}>
                     {totalUploads.toLocaleString()}
                   </Typography>
                 )}
               </CardContent>
             </Card>
           </Grid>
-          {/*  
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <Card>
-              <CardContent>
-                <Typography variant='h6' color='text.secondary'>
-                  Usuarios Activos
-                </Typography>
-                {loading ? (
-                  <Box
-                    sx={{ display: 'flex', justifyContent: 'center', py: 2 }}
-                  >
-                    <CircularProgress style={{ color: '#8f2e2e' }}/>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={cardSx}>
+              <CardContent sx={{ p: '16px 18px !important' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 500 }}>
+                    Casas Activas
+                  </Typography>
+                  <Box sx={kpiChipSx}>
+                    <HomeWorkOutlinedIcon sx={{ fontSize: 17 }} />
                   </Box>
+                </Box>
+                {loading ? (
+                  <CircularProgress size={24} style={{ color: '#8f2e2e' }} />
                 ) : (
-                  <Typography variant='h4'>{usuariosActivos}</Typography>
+                  <Typography sx={{ fontSize: 25, fontWeight: 700 }}>
+                    {casasActivas}
+                  </Typography>
                 )}
               </CardContent>
             </Card>
           </Grid>
-          */}
-          <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-            <Card>
-              <CardContent>
-                <Typography variant='h6' color='text.secondary'>
-                  Casas Activas
-                </Typography>
-                {loading ? (
-                  <Box
-                    sx={{ display: 'flex', justifyContent: 'center', py: 2 }}
-                  >
-                    <CircularProgress style={{ color: '#8f2e2e' }}/>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={cardSx}>
+              <CardContent sx={{ p: '16px 18px !important' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 500 }}>
+                    Promedio por Usuario
+                  </Typography>
+                  <Box sx={kpiChipSx}>
+                    <PersonOutlineOutlinedIcon sx={{ fontSize: 17 }} />
                   </Box>
-                ) : (
-                  <Typography variant='h4'>{casasActivas}</Typography>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-  {/*  
-        <Grid container spacing={2} sx={{ mb: 4 }}>
-          <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-            <Card>
-              <CardContent>
-                <Typography variant='h6' color='text.secondary'>
-                  Promedio por Usuario
-                </Typography>
+                </Box>
                 {loading ? (
-                  <Box
-                    sx={{ display: 'flex', justifyContent: 'center', py: 2 }}
-                  >
-                    <CircularProgress style={{ color: '#8f2e2e' }}/>
-                  </Box>
+                  <CircularProgress size={24} style={{ color: '#8f2e2e' }} />
                 ) : (
-                  <Typography variant='h4'>
+                  <Typography sx={{ fontSize: 25, fontWeight: 700 }}>
                     {Math.round(averageUploads).toLocaleString()}
                   </Typography>
                 )}
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-            <Card>
-              <CardContent>
-                <Typography variant='h6' color='text.secondary'>
-                  Promedio por Casa
-                </Typography>
-                {loading ? (
-                  <Box
-                    sx={{ display: 'flex', justifyContent: 'center', py: 2 }}
-                  >
-                    <CircularProgress style={{ color: '#8f2e2e' }} />
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={cardSx}>
+              <CardContent sx={{ p: '16px 18px !important' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 500 }}>
+                    Promedio por Casa
+                  </Typography>
+                  <Box sx={kpiChipSx}>
+                    <GridViewOutlinedIcon sx={{ fontSize: 17 }} />
                   </Box>
+                </Box>
+                {loading ? (
+                  <CircularProgress size={24} style={{ color: '#8f2e2e' }} />
                 ) : (
-                  <Typography variant='h4'>
+                  <Typography sx={{ fontSize: 25, fontWeight: 700 }}>
                     {Math.round(promedioPorCasa).toLocaleString()}
                   </Typography>
                 )}
@@ -505,218 +516,138 @@ function ReporteUsuarios() {
             </Card>
           </Grid>
         </Grid>
- */}
-        {/* Tabs para alternar entre diferentes tipos de gráficos */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-          <Tabs
-            value={tabValueGrafico}
-            onChange={handleTabChangeGrafico}
-            centered
-            sx={{
-              '& .MuiTab-root': {
-                // Estilo general de cada tab
-                color: '#8f2e2e',
-                fontWeight: 'bold',
-              },
-              '& .MuiTab-root.Mui-selected': {
-                // Tab seleccionado
-                color: '#8f2e2e',
-              },
-              '& .MuiTabs-indicator': {
-                // Barrita inferior
-                backgroundColor: '#8f2e2e',
-              },
-            }}
-          >
-            <Tab label='Registros por Casas' />
-       {/*     <Tab label='Vista Grilla' /> solo borrar aqui y abajo si quieren el grafico*/} 
-          </Tabs>
-        </Box>
-        {/* Contenido de las tabs */}
-
-
-        {tabValueGrafico === 0 && (
-          <Grid container spacing={1}>
-            <Grid size={{ sm: 12, xs: 12, md: 12 }}>
-              <Card>
-                <CardContent>
-                  {' '}
-                  <GraficoCasas />
-                </CardContent>
-              </Card>
-            </Grid>
+        {/* Fila de graficos + detalle de control */}
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Card sx={{ ...cardSx, height: '100%' }}>
+              <CardContent sx={{ p: '14px 16px !important' }}>
+                <Box sx={widgetHeadSx}>
+                  <Typography sx={widgetTitleSx}>Top Casas</Typography>
+                  <Typography sx={widgetMetaSx}>registros cargados</Typography>
+                </Box>
+                {topCasas.length > 0 ? (
+                  <ReactApexChart
+                    options={casaChartOptions}
+                    series={casaChartSeries}
+                    type='bar'
+                    height={Math.max(150, topCasas.length * 34 + 40)}
+                    width='100%'
+                  />
+                ) : (
+                  <Typography sx={emptyTextSx}>Sin datos para el gráfico</Typography>
+                )}
+              </CardContent>
+            </Card>
           </Grid>
-        )}
-
-        {tabValueGrafico === 1 && (
-          <>
-            <Grid container spacing={1}>
-              <Grid size={{ sm: 12, xs: 12, md: 12 }}>
-                <Card>
-                  <CardContent>
-                    <Typography variant='h6' gutterBottom>
-                      Grafico Casas
-                    </Typography>
-                       {/*  <TreemapCasas /> sacar comentario para grafico */}
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-          </>
-        )}
-
-     
-
-        {/* Tabs para alternar entre vista de usuarios y casas */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-          <Tabs
-            value={tabValue}
-            onChange={handleTabChange}
-            centered
-            sx={{
-              '& .MuiTab-root': {
-                // Estilo general de cada tab
-                color: '#8f2e2e',
-                fontWeight: 'bold',
-              },
-              '& .MuiTab-root.Mui-selected': {
-                // Tab seleccionado
-                color: '#8f2e2e',
-              },
-              '& .MuiTabs-indicator': {
-                // Barrita inferior
-                backgroundColor: '#8f2e2e',
-              },
-            }}
-          >
-            {' '}
-            <Tab label='Resumen por Usuarios' />
-            <Tab label='Resumen por Casa' />
-          </Tabs>
-        </Box>
-
-        {/* Contenido de las tabs */}
-
-        {tabValue === 0 && (
-          <Grid container spacing={1}>
-            <Grid size={{ sm: 12, xs: 12, md: 6 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant='h6' gutterBottom>
-                    Listado de Usuarios
-                  </Typography>
-                  <Box sx={{ height: 400, width: '100%' }}>
-                    <ThemeProvider theme={theme}>
-                      <DataGrid
-                        rows={userData}
-                        columns={userColumns}
-                        loading={loading}
-                        disableSelectionOnClick
-                        density='compact'
-                        localeText={{
-                          toolbarExport: 'Exportar',
-                          toolbarDensity: 'Densidad',
-                          toolbarColumns: 'Columnas',
-                          footerRowSelected: (count) =>
-                            count !== 1
-                              ? `${count} filas seleccionadas`
-                              : '1 fila seleccionada',
-                          footerTotalRows: 'Total de filas:',
-                          MuiTablePagination: {
-                            labelRowsPerPage: 'Filas por página', // Aquí cambias "Rows per page"
-                          },
-                        }}
-                        pageSizeOptions={[10, 20, 50]}
-                        initialState={{
-                          pagination: { paginationModel: { pageSize: 10 } },
-                          sorting: {
-                            sortModel: [{ field: 'registros', sort: 'desc' }],
-                          },
-                        }}
-                      />
-                    </ThemeProvider>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6, sm: 12 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant='h6' gutterBottom>
-                    Top 10 Usuarios
-                  </Typography>
-                  {topUsers.length > 0 ? (
-                    <ReactApexChart
-                      options={userChartOptions}
-                      series={userChartSeries}
-                      type='bar'
-                      height={388}
-                      width='100%'
-                    />
-                  ) : (
-                    <Typography variant='body1' align='center'>
-                      No hay datos suficientes para mostrar el gráfico
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Card sx={{ ...cardSx, height: '100%' }}>
+              <CardContent sx={{ p: '14px 16px !important' }}>
+                <Box sx={widgetHeadSx}>
+                  <Typography sx={widgetTitleSx}>Top Usuarios</Typography>
+                  <Typography sx={widgetMetaSx}>registros cargados</Typography>
+                </Box>
+                {topUsers.length > 0 ? (
+                  <ReactApexChart
+                    options={userChartOptions}
+                    series={userChartSeries}
+                    type='bar'
+                    height={Math.max(150, topUsers.length * 34 + 40)}
+                    width='100%'
+                  />
+                ) : (
+                  <Typography sx={emptyTextSx}>Sin datos para el gráfico</Typography>
+                )}
+              </CardContent>
+            </Card>
           </Grid>
-        )}
-
-        {tabValue === 1 && (
-          <Grid container spacing={1}>
-            <Grid size={{ sm: 12, xs: 12, md: 6 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant='h6' gutterBottom>
-                    Listado de Casas
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Card sx={{ ...cardSx, height: '100%' }}>
+              <CardContent sx={{ p: '14px 16px !important' }}>
+                <Box sx={widgetHeadSx}>
+                  <Typography sx={widgetTitleSx}>Listado de Usuarios</Typography>
+                  <Typography sx={widgetMetaSx}>
+                    {userData.length} usuarios
                   </Typography>
-                  <Box sx={{ height: 400, width: '100%' }}>
-                    <ThemeProvider theme={theme}>
-                      <DataGrid
-                        rows={casaData}
-                        columns={casaColumns}
-                        loading={loading}
-                        disableSelectionOnClick
-                        density='compact'
-                        pageSizeOptions={[10, 20, 50]}
-                        initialState={{
-                          pagination: { paginationModel: { pageSize: 10 } },
-                          sorting: {
-                            sortModel: [{ field: 'registros', sort: 'desc' }],
-                          },
-                        }}
-                      />
-                    </ThemeProvider>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6, sm: 12 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant='h6' gutterBottom>
-                    Top 10 Casas
-                  </Typography>
-                  {topCasas.length > 0 ? (
-                    <ReactApexChart
-                      options={casaChartOptions}
-                      series={casaChartSeries}
-                      type='bar'
-                      height={388}
-                      width='100%'
-                    />
-                  ) : (
-                    <Typography variant='body1' align='center'>
-                      No hay datos suficientes para mostrar el gráfico
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
+                </Box>
+                <ThemeProvider theme={theme}>
+                  <DataGrid
+                    autoHeight
+                    rows={userData}
+                    columns={userColumns}
+                    loading={loading}
+                    disableSelectionOnClick
+                    density='compact'
+                    localeText={{
+                      toolbarExport: 'Exportar',
+                      toolbarDensity: 'Densidad',
+                      toolbarColumns: 'Columnas',
+                      footerRowSelected: (count) =>
+                        count !== 1
+                          ? `${count} filas seleccionadas`
+                          : '1 fila seleccionada',
+                      footerTotalRows: 'Total de filas:',
+                      MuiTablePagination: {
+                        labelRowsPerPage: 'Filas por página',
+                      },
+                    }}
+                    pageSizeOptions={[5, 10, 20]}
+                    initialState={{
+                      pagination: { paginationModel: { pageSize: 5 } },
+                      sorting: {
+                        sortModel: [{ field: 'registros', sort: 'desc' }],
+                      },
+                    }}
+                  />
+                </ThemeProvider>
+              </CardContent>
+            </Card>
           </Grid>
-        )}
+        </Grid>
+
+        {/* Fila de listados */}
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Card sx={{ ...cardSx, height: '100%' }}>
+              <CardContent sx={{ p: '14px 16px !important' }}>
+                <Box sx={widgetHeadSx}>
+                  <Typography sx={widgetTitleSx}>Registros por Casas</Typography>
+                  <Typography sx={widgetMetaSx}>Excel vs cargados</Typography>
+                </Box>
+                <GraficoCasas />
+                {/*  <TreemapCasas /> sacar comentario para grafico */}
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Card sx={{ ...cardSx, height: '100%' }}>
+              <CardContent sx={{ p: '14px 16px !important' }}>
+                <Box sx={widgetHeadSx}>
+                  <Typography sx={widgetTitleSx}>Listado de Casas</Typography>
+                  <Typography sx={widgetMetaSx}>
+                    {casaData.length} casas
+                  </Typography>
+                </Box>
+                <ThemeProvider theme={theme}>
+                  <DataGrid
+                    autoHeight
+                    rows={casaData}
+                    columns={casaColumns}
+                    loading={loading}
+                    disableSelectionOnClick
+                    density='compact'
+                    pageSizeOptions={[5, 10, 20]}
+                    initialState={{
+                      pagination: { paginationModel: { pageSize: 5 } },
+                      sorting: {
+                        sortModel: [{ field: 'registros', sort: 'desc' }],
+                      },
+                    }}
+                  />
+                </ThemeProvider>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       </Box>
     </>
   );

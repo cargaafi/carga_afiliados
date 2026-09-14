@@ -9,7 +9,20 @@ import { BsFillTrashFill } from 'react-icons/bs';
 const theme = createTheme(
     {
       palette: {
-        primary: { main: '#000000' },
+        primary: { main: '#8f2e2e' },
+      },
+      components: {
+        MuiDataGrid: {
+          styleOverrides: {
+            columnHeader: {
+              backgroundColor: '#8f2e2e',
+              color: '#ffffff',
+              '& .MuiSvgIcon-root': { color: '#ffffff' },
+            },
+            columnHeaderTitle: { color: '#ffffff', fontWeight: 600 },
+            columnHeaderSortIcon: { color: '#ffffff' },
+          },
+        },
       },
     },
     esES
@@ -32,7 +45,7 @@ function GridUsers({ rows, columnsVar, onDelete, fileNameVar, showDeleteColumn =
       sortable: false,
       filterable: false,
       renderCell: (params) => (
-        <BsFillTrashFill size={25} color="black" onClick={() => onDelete(params.row.id)} style={{ cursor: 'pointer' }} />
+        <BsFillTrashFill size={20} color="#8f2e2e" onClick={() => onDelete(params.row.id)} style={{ cursor: 'pointer' }} />
       ),
     };
     columns.push(deleteButtonColumn);
@@ -42,19 +55,21 @@ function GridUsers({ rows, columnsVar, onDelete, fileNameVar, showDeleteColumn =
     <Box
       sx={{
         flexGrow: 1,
-        height: 600,
         width: '100%',
        mt: 0,
-        pb: 5,
+        pb: 2,
         alignGrids: 'center',
-        px: 5,
       }}
     >
       <ThemeProvider theme={theme}>
         <DataGrid
+          autoHeight
           sx={{
             width: '100%',
-            backgroundColor: 'white',
+            backgroundColor: 'background.paper',
+            borderRadius: '12px',
+            border: '1px solid',
+            borderColor: 'divider',
           }}
           density='compact'
           rowHeight={35} //height de rows

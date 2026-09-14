@@ -149,6 +149,11 @@ function DemoPageContent({ pathname }) {
         flexDirection: 'column',
         alignItems: 'center',
         textAlign: 'center',
+        // minWidth 0: sin esto el ancho minimo de las grillas estira el layout
+        // y las paginas se desbordan del viewport
+        width: '100%',
+        minWidth: 0,
+        maxWidth: '100%',
       }}
     >
       {pathname === '/dashboard' && (

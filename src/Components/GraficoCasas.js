@@ -49,13 +49,9 @@ const GraficoCasas = () => {
     <ThemeProvider theme={theme}>
       <Box
         sx={{
-          height: 500,
           width: '100%',
-          overflow: 'auto',
           bgcolor: isDarkMode ? 'background.paper' : '#fff',
-          p: 2,
           borderRadius: 2,
-          boxShadow: 3,
         }}
       >
         <MainGridBase
@@ -64,7 +60,8 @@ const GraficoCasas = () => {
           fileNameVar='Registros Casas'
           idField='casa'
           showActions={false}
-          defaultPageSize={50}
+          defaultPageSize={5}
+          autoHeight
         />
       </Box>
     </ThemeProvider>

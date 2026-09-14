@@ -71,6 +71,34 @@ function UserCreate() {
     },
   });
 
+  const fieldSx = {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: '10px',
+    },
+    '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#8f2e2e',
+      borderWidth: '1px',
+      boxShadow: '0 0 0 3px rgba(143,46,46,0.12)',
+    },
+    '& .MuiInputLabel-root.Mui-focused': {
+      color: '#8f2e2e',
+    },
+  };
+
+  const buttonSx = {
+    borderRadius: '10px',
+    px: 3.5,
+    py: 1,
+    textTransform: 'none',
+    fontWeight: 600,
+    backgroundColor: '#8f2e2e',
+    boxShadow: 'none',
+    '&:hover': {
+      backgroundColor: '#6b3232',
+      boxShadow: 'none',
+    },
+  };
+
   const handleUserInput = (event) => {
     const { name, value } = event.target;
     setUserCreate((prev) => ({
@@ -175,151 +203,161 @@ function UserCreate() {
   };
   return (
     <>
-      <Container sx={{ mb: 5 }}>
+      <Container maxWidth='lg' sx={{ mb: 5 }}>
         <Box sx={{ width: '100%', mt: 5, pt: 0 }}>
-          <Card>
-            <Typography variant='h3' sx={{ color: '#8f2e2e' }}>
-              Administración de Usuarios
-            </Typography>
-            <CardContent>
-              <Tabs value={valueTab} onChange={handleChange} centered>
-                <Tab label='Crear de Usuario' value='createUser' />
-                <Tab label='Restablecer Contraseña' value='resetPassword' />
+          <Card
+            sx={{
+              borderRadius: 3,
+              boxShadow: '0 12px 40px -16px rgba(143,46,46,0.22), 0 2px 12px rgba(17,17,17,0.06)',
+            }}
+          >
+            <Box sx={{ px: 4, pt: 4, pb: 1, textAlign: 'center' }}>
+              <Typography sx={{ fontSize: 26, fontWeight: 700, color: '#8f2e2e', m: 0 }}>
+                Administración de Usuarios
+              </Typography>
+              <Typography sx={{ fontSize: 14, color: 'text.secondary', mt: 0.5 }}>
+                Creá nuevos usuarios o restablecé contraseñas del sistema
+              </Typography>
+            </Box>
+            <CardContent sx={{ pt: 2 }}>
+              <Tabs
+                value={valueTab}
+                onChange={handleChange}
+                variant='fullWidth'
+                sx={{
+                  mb: 3,
+                  maxWidth: 420,
+                  mx: 'auto',
+                  '& .MuiTabs-indicator': {
+                    backgroundColor: '#8f2e2e',
+                    height: 3,
+                    borderRadius: '3px',
+                  },
+                  '& .MuiTab-root': {
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    fontSize: 14,
+                  },
+                  '& .MuiTab-root.Mui-selected': { color: '#8f2e2e' },
+                }}
+              >
+                <Tab label='Crear usuario' value='createUser' />
+                <Tab label='Restablecer contraseña' value='resetPassword' />
               </Tabs>
+
               {valueTab === 'createUser' && (
-                <Box component='form' onSubmit={addNewUser} sx={{ mt: 3 }}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 3,
-                      mt: 2,
-                    }}
+                <Box component='form' onSubmit={addNewUser}>
+                  <Typography
+                    sx={{ fontSize: 13, color: 'text.secondary', mb: 2.5, textAlign: 'center' }}
                   >
-                    <Grid container spacing={2} justifyContent='center'>
-                      {/* Columna de Datos de Solo Lectura */}
-                      <Grid size={{ xs: 12, md: 8 }}>
-                        <Box>
-                          <Typography variant='h6'>
-                            Ingrese el nuevo usuario{' '}
-                          </Typography>
-                          <Divider sx={{ mb: 1 }} />
-                          <Grid container spacing={1} justifyContent='center'>
-                            <Grid size={{ xs: 12, md: 4 }}>
-                              <TextField
-                                fullWidth
-                                label='Usuario'
-                                name='username'
-                                required
-                                onChange={handleUserInput}
-                                size='small'
-                              />
-                            </Grid>
-                            <Grid size={{ xs: 12, md: 4 }}>
-                              <FormControl fullWidth size='small'>
-                                <InputLabel id='role-select-label'>
-                                  Tipo de Usuario
-                                </InputLabel>
-                                <Select
-                                  labelId='role-select-label'
-                                  id='role-select'
-                                  value={userCreate.role}
-                                  label='Tipo de Usuario'
-                                  name='role'
-                                  onChange={handleUserInput}
-                                >
-                                  <MenuItem value='operador'>Operador</MenuItem>
-                                  <MenuItem value='consulta'>Consulta</MenuItem>
-                                  <MenuItem value='admin'>
-                                    Administrador
-                                  </MenuItem>
-                                </Select>
-                              </FormControl>
-                            </Grid>
-                            <Grid size={{ xs: 12, md: 4 }}>
-                              <TextField
-                                fullWidth
-                                label='Contraseña'
-                                type='password'
-                                name='password'
-                                required
-                                onChange={handleUserInput}
-                                size='small'
-                              />
-                            </Grid>
-                            <Grid size={{ xs: 12, md: 2 }}>
-                              <Button
-                                variant='contained'
-                                type='submit'
-                                size='small'
-                                className='ClaseDeTuBoton'
-                                endIcon={<FaUserPlus />}
-                                sx={{ mt: 2 }}
-                              >
-                                Crear
-                              </Button>
-                            </Grid>
-                          </Grid>
-                        </Box>
-                      </Grid>
+                    Ingresá los datos del nuevo usuario
+                  </Typography>
+                  <Grid container spacing={2} justifyContent='center'>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <TextField
+                        fullWidth
+                        label='Usuario'
+                        name='username'
+                        required
+                        onChange={handleUserInput}
+                        size='small'
+                        sx={fieldSx}
+                      />
                     </Grid>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <FormControl fullWidth size='small' sx={fieldSx}>
+                        <InputLabel id='role-select-label'>
+                          Tipo de Usuario
+                        </InputLabel>
+                        <Select
+                          labelId='role-select-label'
+                          id='role-select'
+                          value={userCreate.role}
+                          label='Tipo de Usuario'
+                          name='role'
+                          onChange={handleUserInput}
+                        >
+                          <MenuItem value='operador'>Operador</MenuItem>
+                          <MenuItem value='consulta'>Consulta</MenuItem>
+                          <MenuItem value='admin'>Administrador</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <TextField
+                        fullWidth
+                        label='Contraseña'
+                        type='password'
+                        name='password'
+                        required
+                        onChange={handleUserInput}
+                        size='small'
+                        sx={fieldSx}
+                      />
+                    </Grid>
+                  </Grid>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                    <Button
+                      variant='contained'
+                      type='submit'
+                      endIcon={<FaUserPlus />}
+                      sx={buttonSx}
+                    >
+                      Crear
+                    </Button>
+                  </Box>
+                </Box>
+              )}
+
+              {valueTab === 'resetPassword' && (
+                <Box component='form' onSubmit={passReset}>
+                  <Typography
+                    sx={{ fontSize: 13, color: 'text.secondary', mb: 2.5, textAlign: 'center' }}
+                  >
+                    Usuario actual: <strong>{user.username}</strong>
+                  </Typography>
+                  <Grid container spacing={2} justifyContent='center'>
+                    <Grid size={{ xs: 12, md: 5 }}>
+                      <TextField
+                        fullWidth
+                        label='Contraseña Nueva'
+                        type='password'
+                        required
+                        onChange={(e) => setNewPass(e.target.value)}
+                        size='small'
+                        sx={fieldSx}
+                      />
+                    </Grid>
+                  </Grid>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                    <Button
+                      variant='contained'
+                      type='submit'
+                      endIcon={<GoPasskeyFill />}
+                      sx={buttonSx}
+                    >
+                      Actualizar
+                    </Button>
                   </Box>
                 </Box>
               )}
             </CardContent>
-          </Card>
-          <Card>
+
+            <Divider />
+
             <CardContent>
-              {valueTab === 'resetPassword' && (
-                <Box component='form' onSubmit={passReset}>
-                  <Grid container spacing={2} justifyContent='center'>
-                    {/* Reseteo de Contraseña */}
-                    <Grid size={{ xs: 12, md: 8 }}>
-                      <Typography variant='h6'>
-                        <p>Usuario actual: {user.username}</p>
-                      </Typography>
-                      <Divider sx={{ mb: 2, mt: 1 }} />
-                      <Grid container spacing={2} justifyContent='center'>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                          <TextField
-                            fullWidth
-                            label='Contraseña Nueva'
-                            type='password'
-                            required
-                            sx={{ mb: 2 }}
-                            onChange={(e) => setNewPass(e.target.value)}
-                            size='small'
-                          />
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 2 }}>
-                          <Button
-                            variant='contained'
-                            type='submit'
-                            size='small'
-                            className='ClaseDeTuBoton'
-                            sx={{ mt: 0.5 }}
-                            endIcon={<GoPasskeyFill />}
-                          >
-                            Actualizar
-                          </Button>
-                        </Grid>
-                      </Grid>
-                    </Grid>
-                  </Grid>
-                </Box>
-              )}
+              <Typography sx={{ fontSize: 16, fontWeight: 600, mb: 2 }}>
+                Usuarios registrados
+              </Typography>
               <GridUsers
                 rows={listUser}
                 columnsVar={userColumns}
                 onDelete={handleDelete}
                 fileNameVar='UserList'
                 showDeleteColumn={true}
-              />{' '}
+              />
             </CardContent>
           </Card>
-          <Grid container justifyContent='center' sx={{ mt: 4 }}>
-            <Grid size={2}></Grid>
-          </Grid>
         </Box>
       </Container>
     </>
