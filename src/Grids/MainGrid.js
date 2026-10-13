@@ -30,7 +30,7 @@ const theme = createTheme(
       MuiDataGrid: {
         styleOverrides: {
           columnHeader: {
-            backgroundColor: '#8f2e2e', // Burdeos para los headers
+            backgroundColor: '#455A64', // Burdeos para los headers
             '& .MuiSvgIcon-root': {
               color: 'white'
             }
@@ -78,12 +78,12 @@ const theme = createTheme(
       MuiInputLabel: {
         styleOverrides: {
           root: {
-            color: '#8f2e2e', // Gris oscuro para todas las etiquetas
+            color: '#455A64', // Gris oscuro para todas las etiquetas
             '&.Mui-focused': {
-              color: '#8f2e2e', // Mantener el color cuando está enfocado
+              color: '#455A64', // Mantener el color cuando está enfocado
             },
             '&.MuiFormLabel-filled': {
-              color: '#8f2e2e', // Mantener el color cuando está lleno
+              color: '#455A64', // Mantener el color cuando está lleno
             },
             // Para modo oscuro
             '.MuiDataGrid-panelDark &, .Mui-darkMode &': {
@@ -96,7 +96,7 @@ const theme = createTheme(
       MuiBadge: {
         styleOverrides: {
           badge: {
-            backgroundColor: '#8f2e2e', // Burdeos para el badge
+            backgroundColor: '#455A64', // Burdeos para el badge
             color: 'white', // Texto blanco en el badge
           }
         }
@@ -105,9 +105,9 @@ const theme = createTheme(
       MuiFormLabel: {
         styleOverrides: {
           root: {
-            color: '#8f2e2e', // Gris oscuro para etiquetas de formulario
+            color: '#455A64', // Gris oscuro para etiquetas de formulario
             '&.Mui-focused': {
-              color: '#8f2e2e', // Mantener color cuando está enfocado
+              color: '#455A64', // Mantener color cuando está enfocado
             },
             // Para modo oscuro
             '.MuiDataGrid-dark &, .MuiDataGrid-panelDark &': {
@@ -120,7 +120,7 @@ const theme = createTheme(
       MuiInput: {
         styleOverrides: {
           input: {
-            color: '#8f2e2e', // Gris oscuro para el texto
+            color: '#455A64', // Gris oscuro para el texto
             // Para modo oscuro
             '.Mui-darkMode &, .MuiDataGrid-panelDark &': {
               color: 'white',
@@ -128,13 +128,13 @@ const theme = createTheme(
           },
           root: {
             '&:before': {
-              borderBottomColor: '#8f2e2e',
+              borderBottomColor: '#455A64',
             },
             '&:hover:not(.Mui-disabled):before': {
-              borderBottomColor: '#8f2e2e',
+              borderBottomColor: '#455A64',
             },
             '&.Mui-focused:after': {
-              borderBottomColor: '#8f2e2e',
+              borderBottomColor: '#455A64',
             }
           }
         }
@@ -157,8 +157,8 @@ const theme = createTheme(
     // Configuración de la paleta de colores
     palette: {
       primary: {
-        main: '#8f2e2e', // Burdeos como color principal
-        dark: '#6e2323', // Versión más oscura para estados hover
+        main: '#455A64', // Burdeos como color principal
+        dark: '#263238', // Versión más oscura para estados hover
       },
       text: {
         primary: '#333333', // Texto primario en gris oscuro

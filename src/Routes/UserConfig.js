@@ -56,17 +56,17 @@ function UserCreate() {
       color: '#A0AAB4',
     },
     '& .MuiInput-underline:after': {
-      borderBottomColor: '#8f2e2e',
+      borderBottomColor: '#455A64',
     },
     '& .MuiOutlinedInput-root': {
       '& fieldset': {
-        borderColor: '#8f2e2e',
+        borderColor: '#455A64',
       },
       '&:hover fieldset': {
-        borderColor: '#8f2e2e',
+        borderColor: '#455A64',
       },
       '&.Mui-focused fieldset': {
-        borderColor: '#8f2e2e',
+        borderColor: '#455A64',
       },
     },
   });
@@ -76,12 +76,12 @@ function UserCreate() {
       borderRadius: '10px',
     },
     '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#8f2e2e',
+      borderColor: '#455A64',
       borderWidth: '1px',
-      boxShadow: '0 0 0 3px rgba(143,46,46,0.12)',
+      boxShadow: '0 0 0 3px rgba(69, 90, 100,0.12)',
     },
     '& .MuiInputLabel-root.Mui-focused': {
-      color: '#8f2e2e',
+      color: '#455A64',
     },
   };
 
@@ -91,10 +91,10 @@ function UserCreate() {
     py: 1,
     textTransform: 'none',
     fontWeight: 600,
-    backgroundColor: '#8f2e2e',
+    backgroundColor: '#455A64',
     boxShadow: 'none',
     '&:hover': {
-      backgroundColor: '#6b3232',
+      backgroundColor: '#37474F',
       boxShadow: 'none',
     },
   };
@@ -119,7 +119,7 @@ function UserCreate() {
         title: 'Usuario creado!',
         text: `Su nuevo Usuario es: ${userCreate.username} y Contraseña: ${userCreate.password}`,
         icon: 'success',
-        confirmButtonColor: '#8f2e2e', // Aquí tu color personalizado
+        confirmButtonColor: '#455A64', // Aquí tu color personalizado
         confirmButtonText: 'Aceptar',
       });
     } catch (err) {
@@ -128,7 +128,7 @@ function UserCreate() {
           title: 'Oops...',
           text: `Este nombre de usuario ya existe, por favor elija otro`,
           icon: 'error',
-          confirmButtonColor: '#8f2e2e', // Aquí tu color personalizado
+          confirmButtonColor: '#455A64', // Aquí tu color personalizado
           confirmButtonText: 'Aceptar',
         });
       }
@@ -172,7 +172,7 @@ function UserCreate() {
         title: 'Contraseña Actualizada!',
         text: `Su nueva contraseña es: ${newPass}`,
         icon: 'success',
-        confirmButtonColor: '#8f2e2e', // Aquí tu color personalizado
+        confirmButtonColor: '#455A64', // Aquí tu color personalizado
         confirmButtonText: 'Aceptar',
       });
     } catch (error) {
@@ -208,11 +208,11 @@ function UserCreate() {
           <Card
             sx={{
               borderRadius: 3,
-              boxShadow: '0 12px 40px -16px rgba(143,46,46,0.22), 0 2px 12px rgba(17,17,17,0.06)',
+              boxShadow: '0 12px 40px -16px rgba(69, 90, 100,0.22), 0 2px 12px rgba(17,17,17,0.06)',
             }}
           >
             <Box sx={{ px: 4, pt: 4, pb: 1, textAlign: 'center' }}>
-              <Typography sx={{ fontSize: 26, fontWeight: 700, color: '#8f2e2e', m: 0 }}>
+              <Typography sx={{ fontSize: 26, fontWeight: 700, color: '#455A64', m: 0 }}>
                 Administración de Usuarios
               </Typography>
               <Typography sx={{ fontSize: 14, color: 'text.secondary', mt: 0.5 }}>
@@ -229,7 +229,7 @@ function UserCreate() {
                   maxWidth: 420,
                   mx: 'auto',
                   '& .MuiTabs-indicator': {
-                    backgroundColor: '#8f2e2e',
+                    backgroundColor: '#455A64',
                     height: 3,
                     borderRadius: '3px',
                   },
@@ -238,7 +238,7 @@ function UserCreate() {
                     fontWeight: 600,
                     fontSize: 14,
                   },
-                  '& .MuiTab-root.Mui-selected': { color: '#8f2e2e' },
+                  '& .MuiTab-root.Mui-selected': { color: '#455A64' },
                 }}
               >
                 <Tab label='Crear usuario' value='createUser' />

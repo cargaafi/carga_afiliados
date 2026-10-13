@@ -113,7 +113,7 @@ function MyDropzone() {
             </div>
           `,
           icon: 'error',
-          confirmButtonColor: '#8f2e2e',
+          confirmButtonColor: '#455A64',
           width: '600px',
         });
       } else {
@@ -121,7 +121,7 @@ function MyDropzone() {
           title: 'Error',
           text: errorMessage,
           icon: 'error',
-          confirmButtonColor: '#8f2e2e',
+          confirmButtonColor: '#455A64',
         });
       }
     } finally {
@@ -140,10 +140,10 @@ function MyDropzone() {
             p: 3,
             textAlign: 'center',
             cursor: 'pointer',
-            '&:hover': { backgroundColor: '#8f2e2e24' },
+            '&:hover': { backgroundColor: '#455A6424' },
           }}
         >
-          <Typography variant='h4' sx={{ color: '#8f2e2e', mb: 2 }}>
+          <Typography variant='h4' sx={{ color: '#455A64', mb: 2 }}>
             Carga de Archivos
           </Typography>
           <Box
@@ -176,14 +176,14 @@ function MyDropzone() {
                 variant='contained'
                 onClick={handleUpload}
                 disabled={isUploading}
-                sx={{ mt: 1, bgcolor: '#8f2e2e' }}
+                sx={{ mt: 1, bgcolor: '#455A64' }}
               >
                 {isUploading ? (
                   <>
                     {' '}
                     <CircularProgress
                       size={15}
-                      style={{ color: '#8f2e2e', marginRight: '3px' }}
+                      style={{ color: '#455A64', marginRight: '3px' }}
                     />{' '}
                     Subiendo...{' '}
                   </>
@@ -211,7 +211,7 @@ function MyDropzone() {
                     sx={{
                       mt: 1,
                       '& .MuiLinearProgress-bar1Determinate': {
-                        backgroundColor: '#8f2e2e',
+                        backgroundColor: '#455A64',
                         color: 'red'
                       },
                     }}
@@ -364,7 +364,7 @@ function MyDropzone() {
                 variant='contained'
                 onClick={handleReset}
                 sx={{
-                  bgcolor: '#8f2e2e',
+                  bgcolor: '#455A64',
                   '&:hover': { bgcolor: '#732525' },
                   minWidth: '200px',
                   py: 1,

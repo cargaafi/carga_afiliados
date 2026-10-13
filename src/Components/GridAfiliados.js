@@ -90,7 +90,7 @@ return (
   <Box sx={{ width: '100%', minWidth: 0, maxWidth: '100%', p: { xs: 1.5, md: 2.2 } }}>
     <Typography
       variant='h4'
-      sx={{ color: '#8f2e2e', mb: 2, textAlign: 'center' }}
+      sx={{ color: '#455A64', mb: 2, textAlign: 'center' }}
     >
       Registros de Afiliados
     </Typography>

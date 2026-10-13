@@ -26,6 +26,7 @@ import {
   AccountPopoverFooter,
 } from '@toolpad/core/Account';
 import CargaExcel from '../Routes/CargaExcel';
+import CargaRD from '../Routes/CargaRD';
 import GridViewIcon from '@mui/icons-material/GridView';
 import PantallaAfi from '../Routes/PantallaAfi';
 const customTheme = createTheme({
@@ -40,8 +41,8 @@ const customTheme = createTheme({
           paper: '#F9F9FE',
         },
         action: {
-          hover: 'rgba(143, 46, 46, 0.5)', // Hover en naranja claro. Menu Logout
-          focus: 'rgba(143, 46, 46, 0.5)',
+          hover: 'rgba(69, 90, 100, 0.5)', // Hover en naranja claro. Menu Logout
+          focus: 'rgba(69, 90, 100, 0.5)',
           selected: '#D3D3D3', // Gris claro en selected (light theme)
         },
       },
@@ -53,8 +54,8 @@ const customTheme = createTheme({
           paper: '#14171acc',
         },
         action: {
-          hover: 'rgba(143, 46, 46, 0.5))',
-          focus: 'rgba(143, 46, 46, 0.5)',
+          hover: 'rgba(69, 90, 100, 0.5))',
+          focus: 'rgba(69, 90, 100, 0.5)',
           selected: '#2C2C2C', // Gris oscuro en selected (dark theme)
         },
       },
@@ -77,13 +78,13 @@ const customTheme = createTheme({
             color: '#828b8e', // Gris claro para el ícono de modo oscuro en tema claro
           },
           '& svg[data-testid="DarkModeIcon"]:hover': {
-            color: '#8f2e2e ', // Hover naranja para el icono de modo oscuro
+            color: '#455A64 ', // Hover naranja para el icono de modo oscuro
           },
           '& svg[data-testid="LightModeIcon"]': {
             color: '#FFFFFF', // Blanco para el ícono de modo claro en tema oscuro
           },
           '& svg[data-testid="LightModeIcon"]:hover': {
-            color: '#8f2e2e ', // Hover gris claro para el ícono en tema oscuro
+            color: '#455A64 ', // Hover gris claro para el ícono en tema oscuro
           },
         },
       },
@@ -93,24 +94,24 @@ const customTheme = createTheme({
         root: {
           '&.Mui-selected': {
             backgroundColor: '#D3D3D3', // Fondo gris claro cuando está seleccionado en light
-            color: '#8f2e2e', // Naranja claro en texto cuando está seleccionado
+            color: '#455A64', // Naranja claro en texto cuando está seleccionado
             '& .MuiListItemIcon-root .MuiSvgIcon-root': {
-              color: '#8f2e2e', // Cambia color del ícono SVG cuando está seleccionado
+              color: '#455A64', // Cambia color del ícono SVG cuando está seleccionado
             },
             '& .MuiListItemText-root .MuiTypography-root': {
               color: 'grey', // Cambia color del texto (Typography) cuando está seleccionado
             },
             '&:hover': {
-              backgroundColor: 'rgba(143, 46, 46, 0.5)', // Fondo gris oscuro en hover cuando está seleccionado
+              backgroundColor: 'rgba(69, 90, 100, 0.5)', // Fondo gris oscuro en hover cuando está seleccionado
             },
           },
           '&:hover': {
             backgroundColor: 'rgba(221, 221, 221, 0.97)', // Fondo en hover cuando no está seleccionado
             '& .MuiListItemIcon-root .MuiSvgIcon-root': {
-              color: '#8f2e2e', // Color mor claro en íconos en hover
+              color: '#455A64', // Color mor claro en íconos en hover
             },
             '& .MuiListItemText-root .MuiTypography-root': {
-              color: '#8f2e2e', // Color mor claro en texto en hover
+              color: '#455A64', // Color mor claro en texto en hover
             },
           },
         },
@@ -162,6 +163,8 @@ function DemoPageContent({ pathname }) {
       {pathname === '/inicio' && <Inicio />}
       {pathname === '/' && <Inicio />}
       {pathname === '/PantallaAfi' && <PantallaAfi />}
+      {pathname === '/CargaRD' && <CargaRD />}
+      {/* Carga de afiliados: oculta del menu, el codigo queda para reactivarla */}
       {pathname === '/CargaExcel' && <CargaExcel />}
       {pathname === '/userConfig' && <UserConfig />}
     </Box>
@@ -221,17 +224,23 @@ function DashboardLayoutPattern() {
       branding={{
         logo: <img src={logo} alt='logo menu' />,
         title: '',
-        color: '#FFB74D',
+        color: '#455A64',
       }}
       navigation={[
         { kind: 'header', title: 'Menu' },
         { segment: 'dashboard', title: 'Dashboard', icon: <DashboardIcon /> },
         // { segment: 'inicio', title: 'Inicio', icon: <HomeIcon /> },
         {
-          segment: 'CargaExcel',
-          title: 'Carga de Excel',
+          segment: 'CargaRD',
+          title: 'Carga de Responsables (RD)',
           icon: <UploadFileIcon />,
         },
+        // Oculta por ahora. Para reactivarla, descomentar: la pantalla sigue entera.
+        // {
+        //   segment: 'CargaExcel',
+        //   title: 'Carga de Excel',
+        //   icon: <UploadFileIcon />,
+        // },
         {
           segment: 'PantallaAfi',
           title: 'Grilla de Afiliados Cargados',

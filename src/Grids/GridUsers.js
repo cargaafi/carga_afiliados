@@ -9,13 +9,13 @@ import { BsFillTrashFill } from 'react-icons/bs';
 const theme = createTheme(
     {
       palette: {
-        primary: { main: '#8f2e2e' },
+        primary: { main: '#455A64' },
       },
       components: {
         MuiDataGrid: {
           styleOverrides: {
             columnHeader: {
-              backgroundColor: '#8f2e2e',
+              backgroundColor: '#455A64',
               color: '#ffffff',
               '& .MuiSvgIcon-root': { color: '#ffffff' },
             },
@@ -45,7 +45,7 @@ function GridUsers({ rows, columnsVar, onDelete, fileNameVar, showDeleteColumn =
       sortable: false,
       filterable: false,
       renderCell: (params) => (
-        <BsFillTrashFill size={20} color="#8f2e2e" onClick={() => onDelete(params.row.id)} style={{ cursor: 'pointer' }} />
+        <BsFillTrashFill size={20} color="#455A64" onClick={() => onDelete(params.row.id)} style={{ cursor: 'pointer' }} />
       ),
     };
     columns.push(deleteButtonColumn);

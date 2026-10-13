@@ -41,41 +41,41 @@ main {
 
 .ClaseDeTuBoton {
     color: #fff !important;
-    border-color: #8f2e2e !important;
-    background-color: #8f2e2e !important;
+    border-color: #455A64 !important;
+    background-color: #455A64 !important;
 
     &:hover {
-        background-color: rgba(143, 46, 46, 0.5) !important;
+        background-color: rgba(69, 90, 100, 0.5) !important;
     }
 }
 
 
 .ClaseDeTuInput {
     color: #fff !important;
-    border-color: #8f2e2e !important;
+    border-color: #455A64 !important;
 }
 
 .ClaseDeTuInput:active,
 .ClaseDeTuInput:focus {
-    border-color: rgba(143, 46, 46, 0.5) !important;
+    border-color: rgba(69, 90, 100, 0.5) !important;
 }
 
 /* Colores tabs userConfig" */
 .css-11vcyky-MuiTabs-indicator {
-    background-color: #8f2e2e !important;
+    background-color: #455A64 !important;
 }
 
 .css-n6e6a9-MuiButtonBase-root-MuiTab-root.Mui-selected {
-    color: #8f2e2e !important;
+    color: #455A64 !important;
 }
 
 .css-1tu6adf-MuiInputBase-input-MuiOutlinedInput-input {
-    color: #8f2e2e !important;
+    color: #455A64 !important;
 
 }
 
 /* CSS externo o en tu archivo de estilos */
 .cssTextField .MuiOutlinedInput-root .Mui-focused fieldset {
-    border-color: #8f2e2e !important;
+    border-color: #455A64 !important;
     /* Color de borde en foco */
 }

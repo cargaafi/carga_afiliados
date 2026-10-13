@@ -39,7 +39,7 @@ function ReporteUsuarios() {
   const cardSx = {
     borderRadius: 3,
     boxShadow:
-      '0 12px 30px -18px rgba(143,46,46,0.28), 0 2px 12px rgba(17,17,17,0.06)',
+      '0 12px 30px -18px rgba(69, 90, 100,0.28), 0 2px 12px rgba(17,17,17,0.06)',
   };
 
   const kpiChipSx = {
@@ -50,8 +50,8 @@ function ReporteUsuarios() {
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    backgroundColor: 'rgba(143,46,46,0.14)',
-    color: '#8f2e2e',
+    backgroundColor: 'rgba(69, 90, 100,0.14)',
+    color: '#455A64',
   };
 
   const widgetHeadSx = {
@@ -73,17 +73,17 @@ function ReporteUsuarios() {
     py: 4,
   };
 
-  const bordeauxPalette = [
-    '#8f2e2e',
-    '#b1503f',
-    '#c96a56',
-    '#d98f6f',
-    '#e8b18a',
-    '#6b3232',
-    '#9c3737',
-    '#4f5658',
-    '#787878',
-    '#a3a3a3',
+  const slatePalette = [
+    '#37474F',
+    '#455A64',
+    '#546E7A',
+    '#607D8B',
+    '#6E8A99',
+    '#78909C',
+    '#8AA2AD',
+    '#90A4AE',
+    '#A3B5BE',
+    '#B0BEC5',
   ];
 
   // Tema para DataGrid con idioma español
@@ -93,7 +93,7 @@ function ReporteUsuarios() {
         MuiDataGrid: {
           styleOverrides: {
             columnHeader: {
-              backgroundColor: '#8f2e2e', // Burdeos para los headers
+              backgroundColor: '#455A64', // Burdeos para los headers
               '& .MuiSvgIcon-root': {
                 color: 'white',
               },
@@ -141,12 +141,12 @@ function ReporteUsuarios() {
         MuiInputLabel: {
           styleOverrides: {
             root: {
-              color: '#8f2e2e', // Gris oscuro para todas las etiquetas
+              color: '#455A64', // Gris oscuro para todas las etiquetas
               '&.Mui-focused': {
-                color: '#8f2e2e', // Mantener el color cuando está enfocado
+                color: '#455A64', // Mantener el color cuando está enfocado
               },
               '&.MuiFormLabel-filled': {
-                color: '#8f2e2e', // Mantener el color cuando está lleno
+                color: '#455A64', // Mantener el color cuando está lleno
               },
               // Para modo oscuro
               '.MuiDataGrid-panelDark &, .Mui-darkMode &': {
@@ -159,7 +159,7 @@ function ReporteUsuarios() {
         MuiBadge: {
           styleOverrides: {
             badge: {
-              backgroundColor: '#8f2e2e', // Burdeos para el badge
+              backgroundColor: '#455A64', // Burdeos para el badge
               color: 'white', // Texto blanco en el badge
             },
           },
@@ -168,9 +168,9 @@ function ReporteUsuarios() {
         MuiFormLabel: {
           styleOverrides: {
             root: {
-              color: '#8f2e2e', // Gris oscuro para etiquetas de formulario
+              color: '#455A64', // Gris oscuro para etiquetas de formulario
               '&.Mui-focused': {
-                color: '#8f2e2e', // Mantener color cuando está enfocado
+                color: '#455A64', // Mantener color cuando está enfocado
               },
               // Para modo oscuro
               '.MuiDataGrid-dark &, .MuiDataGrid-panelDark &': {
@@ -183,7 +183,7 @@ function ReporteUsuarios() {
         MuiInput: {
           styleOverrides: {
             input: {
-              color: '#8f2e2e', // Gris oscuro para el texto
+              color: '#455A64', // Gris oscuro para el texto
               // Para modo oscuro
               '.Mui-darkMode &, .MuiDataGrid-panelDark &': {
                 color: 'white',
@@ -191,13 +191,13 @@ function ReporteUsuarios() {
             },
             root: {
               '&:before': {
-                borderBottomColor: '#8f2e2e',
+                borderBottomColor: '#455A64',
               },
               '&:hover:not(.Mui-disabled):before': {
-                borderBottomColor: '#8f2e2e',
+                borderBottomColor: '#455A64',
               },
               '&.Mui-focused:after': {
-                borderBottomColor: '#8f2e2e',
+                borderBottomColor: '#455A64',
               },
             },
           },
@@ -220,8 +220,8 @@ function ReporteUsuarios() {
       // Configuración de la paleta de colores
       palette: {
         primary: {
-          main: '#8f2e2e', // Burdeos como color principal
-          dark: '#6e2323', // Versión más oscura para estados hover
+          main: '#455A64', // Burdeos como color principal
+          dark: '#263238', // Versión más oscura para estados hover
         },
         text: {
           primary: '#333333', // Texto primario en gris oscuro
@@ -337,7 +337,7 @@ function ReporteUsuarios() {
         dataLabels: { position: 'bottom' },
       },
     },
-    colors: bordeauxPalette,
+    colors: slatePalette,
     dataLabels: {
       enabled: true,
       textAnchor: 'start',
@@ -409,7 +409,7 @@ function ReporteUsuarios() {
       <Box sx={{ p: { xs: 1.5, md: 2 }, maxWidth: 1400, mx: 'auto', width: '100%' }}>
         {/* Encabezado */}
         <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <Typography sx={{ fontSize: 27, fontWeight: 700, color: '#8f2e2e', m: 0 }}>
+          <Typography sx={{ fontSize: 27, fontWeight: 700, color: '#455A64', m: 0 }}>
             Reporte Casas
           </Typography>
           <Typography sx={{ fontSize: 14, color: 'text.secondary', mt: 0.5 }}>
@@ -443,7 +443,7 @@ function ReporteUsuarios() {
                   </Box>
                 </Box>
                 {loading ? (
-                  <CircularProgress size={24} style={{ color: '#8f2e2e' }} />
+                  <CircularProgress size={24} style={{ color: '#455A64' }} />
                 ) : (
                   <Typography sx={{ fontSize: 25, fontWeight: 700 }}>
                     {totalUploads.toLocaleString()}
@@ -464,7 +464,7 @@ function ReporteUsuarios() {
                   </Box>
                 </Box>
                 {loading ? (
-                  <CircularProgress size={24} style={{ color: '#8f2e2e' }} />
+                  <CircularProgress size={24} style={{ color: '#455A64' }} />
                 ) : (
                   <Typography sx={{ fontSize: 25, fontWeight: 700 }}>
                     {casasActivas}
@@ -485,7 +485,7 @@ function ReporteUsuarios() {
                   </Box>
                 </Box>
                 {loading ? (
-                  <CircularProgress size={24} style={{ color: '#8f2e2e' }} />
+                  <CircularProgress size={24} style={{ color: '#455A64' }} />
                 ) : (
                   <Typography sx={{ fontSize: 25, fontWeight: 700 }}>
                     {Math.round(averageUploads).toLocaleString()}
@@ -506,7 +506,7 @@ function ReporteUsuarios() {
                   </Box>
                 </Box>
                 {loading ? (
-                  <CircularProgress size={24} style={{ color: '#8f2e2e' }} />
+                  <CircularProgress size={24} style={{ color: '#455A64' }} />
                 ) : (
                   <Typography sx={{ fontSize: 25, fontWeight: 700 }}>
                     {Math.round(promedioPorCasa).toLocaleString()}

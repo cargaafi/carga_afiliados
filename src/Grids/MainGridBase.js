@@ -23,7 +23,7 @@ const theme = createTheme(
       MuiDataGrid: {
         styleOverrides: {
           columnHeader: {
-            backgroundColor: '#8f2e2e',
+            backgroundColor: '#455A64',
             '& .MuiSvgIcon-root': {
               color: 'white'
             }
@@ -39,8 +39,8 @@ const theme = createTheme(
     },
     palette: {
       primary: {
-        main: '#8f2e2e',
-        dark: '#6e2323',
+        main: '#455A64',
+        dark: '#263238',
       },
       text: {
         primary: '#333333',

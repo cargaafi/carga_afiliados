@@ -11,6 +11,7 @@ const cors = require('cors');
 const getDataController = require('./Controllers/GetFuncData');
 const PostDataController = require('./Controllers/PostFuncData');
 const ExcelController = require('./Controllers/ExcelController');
+const RDController = require('./Controllers/RDController');
 const progressManager = require('./Controllers/Progress');
 //multer
 const upload = multer({ dest: 'uploads/' });
@@ -100,6 +101,10 @@ app.put('/resetPass', authenticateToken, PostDataController.resetPassword__); //
 app.put('/editField', authenticateToken, PostDataController.editField__); // Edit fields in data grid reports page (admin)
 
 app.post('/uploadfile', upload.single('file'), ExcelController.uploadExcel);
+
+// Carga de Responsables de Distrito. La casa sale del usuario del token,
+// no de nada que mande el navegador.
+app.post('/uploadRD', authenticateToken, upload.single('file'), RDController.uploadRD);
 
 app.delete('/deleteAfiliado/:id', authenticateToken, PostDataController.deleteField__);
 

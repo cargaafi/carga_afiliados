@@ -7,9 +7,9 @@ import axios from 'axios';
 import { API_URL } from '../Config/Config';
 import { useAuth } from '../Components/AuthContext';
 
-const MAROON = '#8f2e2e';
-const MAROON_HOVER = '#6b3232';
-const MAROON_DEEP = '#6e2323';
+const MAROON = '#455A64';
+const MAROON_HOVER = '#37474F';
+const MAROON_DEEP = '#263238';
 const BG = '#F9F9FE';
 
 const keyframesCss = `
@@ -34,7 +34,7 @@ const fieldSx = {
     '&.Mui-focused fieldset': {
       borderColor: MAROON,
       borderWidth: '1px',
-      boxShadow: '0 0 0 3px rgba(143,46,46,0.12)',
+      boxShadow: '0 0 0 3px rgba(69, 90, 100,0.12)',
     },
   },
 };
@@ -108,7 +108,7 @@ export default function SlotPropsSignIn() {
             p: 6,
             color: '#ffffff',
             overflow: 'hidden',
-            background: `linear-gradient(160deg, #9c3737 0%, ${MAROON_DEEP} 100%)`,
+            background: `linear-gradient(160deg, #546E7A 0%, ${MAROON_DEEP} 100%)`,
             '&::before': {
               content: '""',
               position: 'absolute',
@@ -201,7 +201,7 @@ export default function SlotPropsSignIn() {
               borderRadius: '20px',
               p: { xs: 4, sm: '44px 40px 40px' },
               boxShadow:
-                '0 24px 60px -24px rgba(143,46,46,0.28), 0 2px 12px rgba(17,17,17,0.05)',
+                '0 24px 60px -24px rgba(69, 90, 100,0.28), 0 2px 12px rgba(17,17,17,0.05)',
             }}
           >
             <Typography
