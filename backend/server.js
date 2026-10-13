@@ -12,6 +12,7 @@ const getDataController = require('./Controllers/GetFuncData');
 const PostDataController = require('./Controllers/PostFuncData');
 const ExcelController = require('./Controllers/ExcelController');
 const RDController = require('./Controllers/RDController');
+const RDReporteController = require('./Controllers/RDReporteController');
 const progressManager = require('./Controllers/Progress');
 //multer
 const upload = multer({ dest: 'uploads/' });
@@ -105,6 +106,8 @@ app.post('/uploadfile', upload.single('file'), ExcelController.uploadExcel);
 // Carga de Responsables de Distrito. La casa sale del usuario del token,
 // no de nada que mande el navegador.
 app.post('/uploadRD', authenticateToken, upload.single('file'), RDController.uploadRD);
+app.get('/rdResumen', authenticateToken, RDReporteController.getResumenRD);
+app.get('/rdListado', authenticateToken, RDReporteController.getListadoRD);
 
 app.delete('/deleteAfiliado/:id', authenticateToken, PostDataController.deleteField__);
 

@@ -243,7 +243,7 @@ function DashboardLayoutPattern() {
         // },
         {
           segment: 'PantallaAfi',
-          title: 'Grilla de Afiliados Cargados',
+          title: 'Responsables Cargados',
           icon: <GridViewIcon />,
         },
         { kind: 'divider' },
