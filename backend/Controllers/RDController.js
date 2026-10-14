@@ -6,6 +6,7 @@ const pool = mysql
   })
   .promise();
 const ExcelJS = require("exceljs");
+const fs = require("fs");
 
 const HOJA_RD = "Responsables de Distrito";
 // La credencial dice el AÑO hasta el que vale, y vale todo ese año: una con
@@ -552,6 +553,14 @@ async function uploadRD(req, res) {
       message: error.message || "Error al procesar el archivo.",
       error: error.toString(),
     });
+  } finally {
+    // multer deja el Excel en uploads/ y nadie lo borraba: con 56 casas
+    // subiendo archivos de decenas de MB el disco se llena y el servicio cae.
+    if (req.file && req.file.path) {
+      fs.promises.unlink(req.file.path).catch((e) => {
+        console.error("No se pudo borrar el temporal", req.file.path, e.message);
+      });
+    }
   }
 }
 

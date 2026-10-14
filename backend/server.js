@@ -92,7 +92,10 @@ app.post('/loginUsers', authenticateToken, PostDataController.loginUsers__); // 
 // El listado de usuarios y el alta/baja son solo para administradores.
 app.get('/getUserList', authenticateToken, PostDataController.soloAdmin, getDataController.listUsers__); // Lista de ususarios
 app.get('/getAfiliados', authenticateToken, getDataController.getAfiliados___); // Lista de afiliados
-app.get('/exportAfiliadosExcel', getDataController.exportAfiliadosExcel__); // Lista de afiliados
+// Comentada: no pedia token, cualquiera con la URL se bajaba el padron entero.
+// Es del modulo viejo de afiliados, que ya no se usa. Para reactivarla hay que
+// agregarle authenticateToken.
+// app.get('/exportAfiliadosExcel', getDataController.exportAfiliadosExcel__); // Lista de afiliados
 
 app.get('/getReporteCompleto', authenticateToken, getDataController.getReporteCompleto);
 app.get('/getGraficoCasas', authenticateToken, getDataController.getGraficoCasas__);
@@ -102,7 +105,10 @@ app.post('/createUser', authenticateToken, PostDataController.soloAdmin, PostDat
 app.put('/resetPass', authenticateToken, PostDataController.resetPassword__); // Reseteo password
 app.put('/editField', authenticateToken, PostDataController.editField__); // Edit fields in data grid reports page (admin)
 
-app.post('/uploadfile', upload.single('file'), ExcelController.uploadExcel);
+// Comentada: no pedia token, cualquiera podia subir un Excel y escribir en la
+// base. Es la carga vieja de afiliados, ya oculta de la interfaz. Para
+// reactivarla hay que agregarle authenticateToken.
+// app.post('/uploadfile', upload.single('file'), ExcelController.uploadExcel);
 
 // Carga de Responsables de Distrito. La casa sale del usuario del token,
 // no de nada que mande el navegador.

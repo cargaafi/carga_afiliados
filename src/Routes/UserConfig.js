@@ -7,7 +7,6 @@ import {
   Tab,
   Card,
   CardContent,
-  CardHeader,
   TextField,
   Button,
   Typography,
@@ -25,7 +24,6 @@ import { GoPasskeyFill } from 'react-icons/go';
 import { FaUserPlus } from 'react-icons/fa6';
 import { useAuth } from '../Components/AuthContext'; // Importa el contexto de autenticación
 import Grid from '@mui/material/Grid2'; // Usando Grid2
-import { alpha, styled } from '@mui/material/styles';
 import GridUsers from '../Grids/GridUsers';
 const userColumns = [
   { field: 'id', headerName: 'ID', flex: 1 },
@@ -54,25 +52,6 @@ function UserCreate() {
     setValueTab(newValue);
   };
 
-  const CssTextField = styled(TextField)({
-    '& label.Mui-focused': {
-      color: '#A0AAB4',
-    },
-    '& .MuiInput-underline:after': {
-      borderBottomColor: '#455A64',
-    },
-    '& .MuiOutlinedInput-root': {
-      '& fieldset': {
-        borderColor: '#455A64',
-      },
-      '&:hover fieldset': {
-        borderColor: '#455A64',
-      },
-      '&.Mui-focused fieldset': {
-        borderColor: '#455A64',
-      },
-    },
-  });
 
   const fieldSx = {
     '& .MuiOutlinedInput-root': {

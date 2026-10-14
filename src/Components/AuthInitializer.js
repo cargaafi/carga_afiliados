@@ -13,7 +13,9 @@ function AuthInitializer() {
           role: localStorage.getItem('rol') || ''
         });
       }
-      
+      // corre una sola vez al montar: login cambia en cada render y meterlo
+      // como dependencia dispararia el efecto en bucle
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
   
     return null; // No renderiza nada, solo inicializa la autenticación

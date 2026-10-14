@@ -2,7 +2,7 @@ import React from 'react';
 import 'react-data-grid/lib/styles.css';
 import Box from '@mui/material/Box';
 import { esES } from '@mui/material/locale';
-import { DataGrid, GridToolbarContainer, GridToolbarColumnsButton, GridToolbarExport, GridToolbarDensitySelector, GridToolbarFilterButton } from '@mui/x-data-grid';
+import { DataGrid, GridToolbarContainer } from '@mui/x-data-grid';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { BsFillTrashFill } from 'react-icons/bs';
 
