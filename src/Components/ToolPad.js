@@ -26,6 +26,7 @@ import {
 } from '@toolpad/core/Account';
 import CargaExcel from '../Routes/CargaExcel';
 import CargaRD from '../Routes/CargaRD';
+import CargaRG from '../Routes/CargaRG';
 import GridViewIcon from '@mui/icons-material/GridView';
 import PantallaAfi from '../Routes/PantallaAfi';
 const customTheme = createTheme({
@@ -118,6 +119,33 @@ const customTheme = createTheme({
     },
   },
 });
+// Con la barra colapsada solo se ven los iconos, y RD y RG usaban el mismo
+// icono de subida: eran indistinguibles. Estas siglas se leen de una.
+function IconoSigla({ children }) {
+  return (
+    <Box
+      sx={{
+        width: 24,
+        height: 24,
+        borderRadius: '6px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: '1.5px solid',
+        borderColor: 'currentColor',
+        color: 'inherit',
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: '0.3px',
+        lineHeight: 1,
+        flexShrink: 0,
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
+
 function CustomMenu({ router }) {
   // El SignOutButton de Toolpad se dibuja en color "primary" y con un filtro
   // de opacidad: sobre el fondo oscuro quedaba apagado hasta el hover. Usamos
@@ -191,6 +219,7 @@ function DemoPageContent({ pathname }) {
       {pathname === '/' && <Inicio />}
       {pathname === '/PantallaAfi' && <PantallaAfi />}
       {pathname === '/CargaRD' && <CargaRD />}
+      {pathname === '/CargaRG' && <CargaRG />}
       {/* Carga de afiliados: oculta del menu, el codigo queda para reactivarla */}
       {pathname === '/CargaExcel' && <CargaExcel />}
       {pathname === '/userConfig' && <UserConfig />}
@@ -269,9 +298,17 @@ function DashboardLayoutPattern() {
         // { segment: 'inicio', title: 'Inicio', icon: <HomeIcon /> },
         {
           segment: 'CargaRD',
-          title: 'RD',
-          icon: <UploadFileIcon />,
+          title: 'Carga RD',
+          icon: <IconoSigla>RD</IconoSigla>,
         },
+        // RG está listo y probado, pero oculto hasta que se habilite para los
+        // usuarios. Para mostrarlo alcanza con descomentar esto: la pantalla,
+        // la ruta y el endpoint siguen enteros.
+        // {
+        //   segment: 'CargaRG',
+        //   title: 'Carga RG',
+        //   icon: <IconoSigla>RG</IconoSigla>,
+        // },
         // Oculta por ahora. Para reactivarla, descomentar: la pantalla sigue entera.
         // {
         //   segment: 'CargaExcel',

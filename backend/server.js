@@ -13,6 +13,7 @@ const PostDataController = require('./Controllers/PostFuncData');
 const ExcelController = require('./Controllers/ExcelController');
 const RDController = require('./Controllers/RDController');
 const RDReporteController = require('./Controllers/RDReporteController');
+const RGController = require('./Controllers/RGController');
 const progressManager = require('./Controllers/Progress');
 //multer
 const upload = multer({ dest: 'uploads/' });
@@ -116,6 +117,10 @@ app.put('/editField', authenticateToken, PostDataController.editField__); // Edi
 app.post('/uploadRD', authenticateToken, upload.single('file'), RDController.uploadRD);
 app.get('/rdResumen', authenticateToken, RDReporteController.getResumenRD);
 app.get('/rdListado', authenticateToken, RDReporteController.getListadoRD);
+
+// Carga de Responsables Generales. Mismas reglas que RD pero con tabla de paso:
+// son 173 mil filas y un SELECT por fila no termina nunca.
+app.post('/uploadRG', authenticateToken, upload.single('file'), RGController.uploadRG);
 
 app.delete('/deleteAfiliado/:id', authenticateToken, PostDataController.deleteField__);
 

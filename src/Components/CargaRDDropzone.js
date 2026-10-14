@@ -6,6 +6,8 @@ import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { API_URL } from '../Config/Config';
+import { useAuth } from './AuthContext';
+import { descargarResumen } from './resumenDescarga';
 
 const SLATE = '#455A64';
 const SLATE_HOVER = '#37474F';
@@ -81,10 +83,33 @@ function armarResumenHtml(r) {
     </div>
     ${filas.join('')}
     ${detalle}
+    <div style="margin-top:14px;text-align:center;">
+      <button id="btn-descargar-resumen" type="button" style="
+        background:none;border:1px solid ${SLATE};color:${SLATE};
+        border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;
+        cursor:pointer;font-family:inherit;">
+        Descargar resumen
+      </button>
+    </div>
   </div>`;
 }
 
+// Engancha el boton del popup. Se hace en didOpen y no con un botón propio de
+// SweetAlert para que al descargar el resumen NO se cierre el diálogo.
+function conectarDescarga(datos) {
+  const btn = document.getElementById('btn-descargar-resumen');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const nombre = descargarResumen(datos);
+    btn.textContent = 'Descargado: ' + nombre;
+    btn.disabled = true;
+    btn.style.opacity = '0.65';
+    btn.style.cursor = 'default';
+  });
+}
+
 export default function CargaRDDropzone() {
+  const { user } = useAuth();
   const [subiendo, setSubiendo] = useState(false);
   const [progreso, setProgreso] = useState(0);
   const [fase, setFase] = useState('');
@@ -116,6 +141,7 @@ export default function CargaRDDropzone() {
           if (pct >= 100) setFase('Procesando el Excel');
         },
       });
+      const nombreArchivoSubido = archivo.name;
       acceptedFiles.length = 0;
       Swal.fire({
         icon: 'success',
@@ -124,6 +150,13 @@ export default function CargaRDDropzone() {
         confirmButtonColor: SLATE,
         confirmButtonText: 'Aceptar',
         width: 540,
+        didOpen: () =>
+          conectarDescarga({
+            modulo: 'RD',
+            resumen: res.data.resumen,
+            usuario: user?.username,
+            archivo: nombreArchivoSubido,
+          }),
       });
     } catch (error) {
       Swal.fire({
