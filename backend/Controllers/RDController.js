@@ -417,15 +417,15 @@ async function uploadRD(req, res) {
         resumen.descartados.otroEstado++;
         const ajenas = casasPorEntidad.get(d.estado_norm);
         let deQuien;
-        if (!ajenas || !ajenas.length) deQuien = "de otra casa";
-        else if (ajenas.length === 1) deQuien = `de la casa ${ajenas[0]}`;
+        if (!ajenas || !ajenas.length) deQuien = "a otra casa";
+        else if (ajenas.length === 1) deQuien = `a la casa ${ajenas[0]}`;
         else
-          deQuien = `de las casas ${ajenas.slice(0, -1).join(", ")} y ${
+          deQuien = `a las casas ${ajenas.slice(0, -1).join(", ")} y ${
             ajenas[ajenas.length - 1]
           }`;
         agregarDetalle(
           fila,
-          `distrito ${d.distrito_federal} — es ${deQuien}, no de la tuya (casa ${usuario.casa})`
+          `distrito ${d.distrito_federal} — corresponde ${deQuien}, no a la casa ${usuario.casa}`
         );
         continue;
       }

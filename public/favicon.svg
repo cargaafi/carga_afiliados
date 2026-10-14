@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="7" fill="#455A64"/>
+  <!-- hoja con la esquina doblada -->
+  <path fill="#fff" d="M8 5h9l7 7v15H8z"/>
+  <!-- renglones: lo que hace que se lea como documento -->
+  <rect x="11" y="13" width="10" height="2" fill="#455A64"/>
+  <rect x="11" y="17" width="10" height="2" fill="#455A64"/>
+  <rect x="11" y="21" width="10" height="2" fill="#455A64"/>
+</svg>

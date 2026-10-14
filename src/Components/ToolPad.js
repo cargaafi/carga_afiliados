@@ -10,7 +10,6 @@ import {
 } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { useDemoRouter } from '@toolpad/core/internal';
-import logo from '../Components/img/logoCargaMenu.png';
 import Inicio from '../Routes/Inicio';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
@@ -18,11 +17,11 @@ import '../CSS/App.css';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import UserConfig from '../Routes/UserConfig';
 //import CustomMenu from './CustomMenu';
-import { MenuItem, Stack, Divider, ListItemIcon } from '@mui/material';
+import { MenuItem, Stack, Divider, ListItemIcon, Button } from '@mui/material';
+import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
 import {
   AccountPreview,
-  SignOutButton,
   AccountPopoverFooter,
 } from '@toolpad/core/Account';
 import CargaExcel from '../Routes/CargaExcel';
@@ -120,6 +119,10 @@ const customTheme = createTheme({
   },
 });
 function CustomMenu({ router }) {
+  // El SignOutButton de Toolpad se dibuja en color "primary" y con un filtro
+  // de opacidad: sobre el fondo oscuro quedaba apagado hasta el hover. Usamos
+  // un Button propio, que llama al mismo signOut del contexto.
+  const authentication = React.useContext(AuthenticationContext);
   const handleConfigClick = () => {
     router.navigate('/userConfig');
   };
@@ -136,7 +139,31 @@ function CustomMenu({ router }) {
       </MenuItem>
       <Divider />
       <AccountPopoverFooter>
-        <SignOutButton />
+        <Button
+          variant='outlined'
+          size='small'
+          fullWidth
+          disableElevation
+          startIcon={<LogoutIcon />}
+          onClick={() => authentication?.signOut?.()}
+          sx={{
+            textTransform: 'none',
+            fontWeight: 500,
+            // text.primary y divider compilan a variables CSS que cambian
+            // solas con el tema: blanco en oscuro, gris oscuro en claro. Con
+            // un selector [data-toolpad-color-scheme] la regla perdia por
+            // especificidad contra el propio estilo base del boton.
+            color: 'text.primary',
+            borderColor: 'divider',
+            '&:hover': {
+              color: 'text.primary',
+              borderColor: 'text.primary',
+              backgroundColor: 'rgba(128,128,128,0.16)',
+            },
+          }}
+        >
+          Cerrar sesión
+        </Button>
       </AccountPopoverFooter>
     </Stack>
   );
@@ -222,7 +249,17 @@ function DashboardLayoutPattern() {
   return (
     <AppProvider
       branding={{
-        logo: <img src={logo} alt='logo menu' />,
+        // Era un PNG rojo fijo: un icono toma el color del tema, blanco en
+        // modo oscuro y gris en modo claro.
+        logo: (
+          <UploadFileIcon
+            sx={{
+              fontSize: 30,
+              color: '#607D8B',
+              '[data-toolpad-color-scheme="dark"] &': { color: '#fff' },
+            }}
+          />
+        ),
         title: '',
         color: '#455A64',
       }}

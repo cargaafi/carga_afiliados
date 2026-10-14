@@ -27,7 +27,7 @@ function armarResumenHtml(r) {
   const d = r.descartados || {};
   if (d.claveInvalida) filas.push(filaResumen('❌', '#c62828', `<b>${d.claveInvalida}</b> descartados — problema con la clave de elector`));
   if (d.sinDistrito) filas.push(filaResumen('❌', '#c62828', `<b>${d.sinDistrito}</b> descartados — sin estado o sin distrito`));
-  if (d.otroEstado) filas.push(filaResumen('🚫', '#ef6c00', `<b>${d.otroEstado}</b> descartados — no son de tu casa (${r.entidadUsuario})`));
+  if (d.otroEstado) filas.push(filaResumen('🚫', '#ef6c00', `<b>${d.otroEstado}</b> no cargados — corresponden a otras casas`));
 
   const a = r.avisos || {};
   const avisos = [];
