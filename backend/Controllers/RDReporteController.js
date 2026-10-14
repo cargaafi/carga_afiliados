@@ -1,5 +1,6 @@
 require("dotenv").config();
 const mysql = require("mysql2");
+const { resolverUsuario } = require("./RDController");
 const pool = mysql
   .createPool({
     uri: process.env.DATABASE_URL,
@@ -9,10 +10,35 @@ const pool = mysql
 // Mexico tiene 300 distritos electorales federales. Es el universo a cubrir:
 // la tabla RD solo guarda los que YA tienen responsable asignado.
 const TOTAL_DISTRITOS = 300;
-const VIGENCIA_MINIMA = 2026;
+// El año en curso: una credencial vale hasta el final del año que indica.
+const vigenciaMinima = () => new Date().getFullYear();
+
+// Cada casa ve solo su entidad; el usuario nacional ve el pais entero. Se
+// resuelve desde el token, nunca desde algo que mande el navegador.
+async function alcanceDe(req) {
+  const usuario = await resolverUsuario(req.user && req.user.id);
+  if (!usuario) return null;
+  if (usuario.nacional) {
+    return { nacional: true, where: "", params: [], entidad: "Todas" };
+  }
+  if (!usuario.entidad_norm) {
+    // usuario sin casa asociada: no ve nada, en vez de ver todo
+    return { nacional: false, where: "WHERE 1 = 0", params: [], entidad: null };
+  }
+  return {
+    nacional: false,
+    where: "WHERE estado_norm = ?",
+    params: [usuario.entidad_norm],
+    entidad: usuario.entidad,
+    casa: usuario.casa,
+  };
+}
 
 async function getResumenRD(req, res) {
   try {
+    const a = await alcanceDe(req);
+    if (!a) return res.status(401).json({ message: "Usuario no válido" });
+
     const [[totales]] = await pool.query(`
       SELECT
         COUNT(*)                                             AS cargados,
@@ -21,34 +47,40 @@ async function getResumenRD(req, res) {
         SUM(vigencia_ine IS NULL OR vigencia_ine < ?)        AS ineVencido,
         SUM(telefono IS NULL OR telefono = '')               AS sinTelefono,
         SUM(correo IS NULL OR correo = '')                   AS sinCorreo
-      FROM RD
-    `, [VIGENCIA_MINIMA]);
+      FROM RD ${a.where}
+    `, [vigenciaMinima(), ...a.params]);
 
     const [porEntidad] = await pool.query(`
       SELECT estado, COUNT(*) AS cargados
-      FROM RD GROUP BY estado, estado_norm ORDER BY cargados DESC, estado ASC
-    `);
+      FROM RD ${a.where}
+      GROUP BY estado, estado_norm ORDER BY cargados DESC, estado ASC
+    `, a.params);
 
     const [porCasa] = await pool.query(`
       SELECT r.casa_carga AS casa, c.entidad, COUNT(*) AS cargados
       FROM RD r LEFT JOIN casas c ON c.casa = r.casa_carga
-      WHERE r.casa_carga IS NOT NULL
+      ${a.where ? a.where + " AND" : "WHERE"} r.casa_carga IS NOT NULL
       GROUP BY r.casa_carga, c.entidad
       ORDER BY cargados DESC, casa ASC
       LIMIT 10
-    `);
+    `, a.params);
 
     const [ultimas] = await pool.query(`
       SELECT estado, distrito_federal, nombre, apellido_paterno, usuario_subida, fecha_subida
-      FROM RD ORDER BY fecha_subida DESC LIMIT 5
-    `);
+      FROM RD ${a.where} ORDER BY fecha_subida DESC LIMIT 5
+    `, a.params);
 
     const cargados = Number(totales.cargados) || 0;
+    // El universo de 300 distritos solo tiene sentido a nivel nacional: no
+    // sabemos cuantos distritos tiene cada entidad, asi que para una casa se
+    // informa el total cargado sin porcentaje inventado.
     return res.json({
-      totalDistritos: TOTAL_DISTRITOS,
+      nacional: a.nacional,
+      entidadUsuario: a.entidad,
+      totalDistritos: a.nacional ? TOTAL_DISTRITOS : null,
       cargados,
-      faltantes: Math.max(TOTAL_DISTRITOS - cargados, 0),
-      avance: TOTAL_DISTRITOS ? Math.round((cargados / TOTAL_DISTRITOS) * 100) : 0,
+      faltantes: a.nacional ? Math.max(TOTAL_DISTRITOS - cargados, 0) : null,
+      avance: a.nacional ? Math.round((cargados / TOTAL_DISTRITOS) * 100) : null,
       casas: Number(totales.casas) || 0,
       entidades: Number(totales.entidades) || 0,
       ineVencido: Number(totales.ineVencido) || 0,
@@ -67,6 +99,9 @@ async function getResumenRD(req, res) {
 
 async function getListadoRD(req, res) {
   try {
+    const a = await alcanceDe(req);
+    if (!a) return res.status(401).json({ message: "Usuario no válido" });
+
     // RD son 300 filas como maximo: devolvemos todo y la grilla pagina sola.
     const [filas] = await pool.query(`
       SELECT id, estado, casa, distrito_federal, cabecera, cargo,
@@ -75,10 +110,10 @@ async function getListadoRD(req, res) {
              calle, numero_exterior, numero_interior, colonia,
              municipio_domicilio, estado_domicilio, codigo_postal, seccion_electoral,
              casa_carga, usuario_subida, fecha_subida
-      FROM RD
+      FROM RD ${a.where}
       ORDER BY estado ASC, distrito_federal ASC
-    `);
-    return res.json({ data: filas, total: filas.length });
+    `, a.params);
+    return res.json({ data: filas, total: filas.length, nacional: a.nacional });
   } catch (error) {
     return res
       .status(500)

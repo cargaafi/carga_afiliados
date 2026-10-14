@@ -73,6 +73,10 @@ export default function SlotPropsSignIn() {
         });
       } else {
         localStorage.setItem('jwtToken', response.data.token);
+        // se guardan para que la sesión sobreviva al F5: sin el rol la
+        // pantalla no sabe si mostrar las opciones de administrador
+        localStorage.setItem('usuario', username);
+        localStorage.setItem('rol', response.data.role || '');
         axios.defaults.headers.common['Authorization'] =
           'Bearer ' + response.data.token;
         login({
@@ -164,7 +168,7 @@ export default function SlotPropsSignIn() {
               className='login-a1'
               sx={{ fontSize: 26, fontWeight: 600, mt: 2.5, letterSpacing: '0.2px' }}
             >
-              Carga de Afiliados
+              Carga de Representantes
             </Typography>
             <Typography
               className='login-a2'
@@ -176,7 +180,7 @@ export default function SlotPropsSignIn() {
                 lineHeight: 1.5,
               }}
             >
-              Sistema interno de gestión de padrón electoral
+              Sistema interno de registro
             </Typography>
           </Box>
         </Box>
@@ -239,7 +243,7 @@ export default function SlotPropsSignIn() {
                 mb: 4,
               }}
             >
-              Ingresá tus credenciales para continuar
+              Ingresa tus credenciales para continuar
             </Typography>
 
             <Box className='login-a3' sx={{ mb: 2.5 }}>

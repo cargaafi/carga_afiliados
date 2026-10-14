@@ -9,8 +9,8 @@ function AuthInitializer() {
       if (token) {
         axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
         login({
-          username: '...',
-          role: '...'
+          username: localStorage.getItem('usuario') || '',
+          role: localStorage.getItem('rol') || ''
         });
       }
       

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Box, Card, CardContent, Typography, Button, CircularProgress, Chip } from '@mui/material';
+import { Box, Card, CardContent, Typography, Button, CircularProgress, Chip, LinearProgress } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import axios from 'axios';
@@ -31,7 +31,8 @@ function armarResumenHtml(r) {
 
   const a = r.avisos || {};
   const avisos = [];
-  if (a.vigencia) avisos.push(`${a.vigencia} con INE vencido`);
+  if (a.vigenciaVencida) avisos.push(`${a.vigenciaVencida} con INE vencida`);
+  if (a.vigencia) avisos.push(`${a.vigencia} sin vigencia de INE`);
   if (a.telefono) avisos.push(`${a.telefono} con teléfono inválido`);
   if (a.correo) avisos.push(`${a.correo} con correo inválido`);
   if (a.sexo) avisos.push(`${a.sexo} con sexo distinto de Hombre/Mujer`);
@@ -40,20 +41,30 @@ function armarResumenHtml(r) {
 
   if (!filas.length) filas.push(filaResumen('ℹ️', '#78909C', 'No hubo filas para procesar'));
 
-  let detalle = '';
-  if (r.detalle && r.detalle.length) {
-    const items = r.detalle
-      .map((x) => `<li style="margin-bottom:3px;">Fila ${x.fila}: ${x.motivo}</li>`)
-      .join('');
-    detalle = `<details style="margin-top:14px;border-top:1px solid #e0e0e0;padding-top:10px;">
+  const bloqueDetalle = (titulo, lista, render) => {
+    if (!lista || !lista.length) return '';
+    const items = lista.map(render).join('');
+    return `<details style="margin-top:12px;border-top:1px solid #e0e0e0;padding-top:10px;">
       <summary style="cursor:pointer;font-size:13px;color:#455A64;">
-        Ver detalle de los descartados (${r.detalle.length})
+        ${titulo} (${lista.length})
       </summary>
-      <ul style="margin:8px 0 0;padding-left:20px;font-size:12px;color:#546E7A;max-height:180px;overflow:auto;">
+      <ul style="margin:8px 0 0;padding-left:20px;font-size:12px;color:#546E7A;max-height:190px;overflow-y:auto;">
         ${items}
       </ul>
     </details>`;
-  }
+  };
+
+  const detalle =
+    bloqueDetalle(
+      'Ver qué se modificó',
+      r.cambios,
+      (x) => `<li style="margin-bottom:4px;"><b>Fila ${x.fila}</b> — ${x.ubicacion}: ${x.texto}</li>`
+    ) +
+    bloqueDetalle(
+      'Ver detalle de los descartados',
+      r.detalle,
+      (x) => `<li style="margin-bottom:3px;">Fila ${x.fila}: ${x.motivo}</li>`
+    );
 
   const conDatos = r.filasLeidas - (r.sinResponsable || 0);
   return `<div style="text-align:left;">
@@ -67,6 +78,8 @@ function armarResumenHtml(r) {
 
 export default function CargaRDDropzone() {
   const [subiendo, setSubiendo] = useState(false);
+  const [progreso, setProgreso] = useState(0);
+  const [fase, setFase] = useState('');
 
   const { acceptedFiles, getRootProps, getInputProps, isDragActive } = useDropzone({
     maxFiles: 1,
@@ -80,11 +93,20 @@ export default function CargaRDDropzone() {
   const handleUpload = async () => {
     if (!archivo) return;
     setSubiendo(true);
+    setProgreso(0);
+    setFase('Subiendo archivo');
     try {
       const formData = new FormData();
       formData.append('file', archivo);
       const res = await axios.post(`${API_URL}/uploadRD`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (e) => {
+          if (!e.total) return;
+          const pct = Math.round((e.loaded / e.total) * 100);
+          setProgreso(pct);
+          // cuando termina de viajar el archivo, el servidor todavia lo procesa
+          if (pct >= 100) setFase('Procesando el Excel');
+        },
       });
       acceptedFiles.length = 0;
       Swal.fire({
@@ -105,6 +127,8 @@ export default function CargaRDDropzone() {
       });
     } finally {
       setSubiendo(false);
+      setProgreso(0);
+      setFase('');
     }
   };
 
@@ -112,10 +136,11 @@ export default function CargaRDDropzone() {
     <Box sx={{ width: '100%', minWidth: 0, maxWidth: 820, mx: 'auto', p: { xs: 1.5, md: 2 } }}>
       <Box sx={{ textAlign: 'center', mb: 3 }}>
         <Typography sx={{ fontSize: 27, fontWeight: 700, color: SLATE }}>
-          Carga de Responsables de Distrito
+          Carga de RD
         </Typography>
         <Typography sx={{ fontSize: 14, color: 'text.secondary', mt: 0.5 }}>
-          Subí el Excel con la hoja "Responsables de Distrito"
+          Puedes subir un Excel individual de RD o el completo con todas las
+          pestañas: el sistema busca la hoja de RD y cargará solamente esa.
         </Typography>
       </Box>
 
@@ -142,7 +167,7 @@ export default function CargaRDDropzone() {
             <input {...getInputProps()} />
             <UploadFileIcon sx={{ fontSize: 44, color: SLATE, mb: 1 }} />
             <Typography sx={{ fontSize: 15, fontWeight: 600 }}>
-              {isDragActive ? 'Soltá el archivo acá' : 'Arrastrá el Excel o hacé click para elegirlo'}
+              {isDragActive ? 'Suelta el archivo aquí' : 'Arrastra el Excel o haz clic para elegirlo'}
             </Typography>
             <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.5 }}>
               Solo archivos .xlsx
@@ -174,6 +199,34 @@ export default function CargaRDDropzone() {
             </Box>
           )}
 
+          {subiendo && (
+            <Box sx={{ mt: 2.5 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.75 }}>
+                <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>
+                  {fase}
+                  {fase === 'Procesando el Excel' ? '…' : ''}
+                </Typography>
+                {fase === 'Subiendo archivo' && (
+                  <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: SLATE }}>
+                    {progreso}%
+                  </Typography>
+                )}
+              </Box>
+              <LinearProgress
+                // mientras viaja el archivo mostramos el avance real; cuando el
+                // servidor lo procesa no hay porcentaje posible, va indeterminada
+                variant={fase === 'Subiendo archivo' ? 'determinate' : 'indeterminate'}
+                value={progreso}
+                sx={{
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: 'rgba(69,90,100,0.14)',
+                  '& .MuiLinearProgress-bar': { borderRadius: 4, backgroundColor: SLATE },
+                }}
+              />
+            </Box>
+          )}
+
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
             <Button
               variant='contained'
@@ -190,7 +243,7 @@ export default function CargaRDDropzone() {
                 '&:hover': { backgroundColor: SLATE_HOVER, boxShadow: 'none' },
               }}
             >
-              {subiendo ? <CircularProgress size={22} sx={{ color: '#fff' }} /> : 'Cargar archivo'}
+              {subiendo ? <CircularProgress size={22} sx={{ color: '#fff' }} /> : 'Procesar Excel'}
             </Button>
           </Box>
         </CardContent>

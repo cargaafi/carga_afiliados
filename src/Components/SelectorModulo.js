@@ -133,7 +133,7 @@ export function EstadoVacio({ modulo, accion }) {
         Todavía no hay datos de {m ? m.detalle : modulo}
       </Typography>
       <Typography sx={{ fontSize: 13.5, color: 'text.secondary', maxWidth: 420 }}>
-        {accion || `Cuando se habilite la carga de ${modulo}, la información va a aparecer acá.`}
+        {accion || `Cuando se habilite la carga de ${modulo}, la información aparecerá aquí.`}
       </Typography>
     </Box>
   );

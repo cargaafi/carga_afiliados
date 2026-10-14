@@ -232,7 +232,7 @@ function DashboardLayoutPattern() {
         // { segment: 'inicio', title: 'Inicio', icon: <HomeIcon /> },
         {
           segment: 'CargaRD',
-          title: 'Carga de Responsables (RD)',
+          title: 'RD',
           icon: <UploadFileIcon />,
         },
         // Oculta por ahora. Para reactivarla, descomentar: la pantalla sigue entera.

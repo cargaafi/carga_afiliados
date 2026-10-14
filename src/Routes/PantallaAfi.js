@@ -20,10 +20,10 @@ function PantallaAfi() {
 
       {modulo === 'RD' && <GrillaRD />}
       {modulo === 'RG' && (
-        <EstadoVacio modulo='RG' accion='Cuando se habilite la carga de RG, el listado va a aparecer acá.' />
+        <EstadoVacio modulo='RG' accion='Cuando se habilite la carga de RG, el listado aparecerá aquí.' />
       )}
       {modulo === 'RC' && (
-        <EstadoVacio modulo='RC' accion='Cuando se habilite la carga de RC, el listado va a aparecer acá.' />
+        <EstadoVacio modulo='RC' accion='Cuando se habilite la carga de RC, el listado aparecerá aquí.' />
       )}
     </Box>
   );

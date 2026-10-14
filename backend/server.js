@@ -89,7 +89,8 @@ app.get('/upload-progress',progressLimiter, (req, res) => {
 });
 
 app.post('/loginUsers', authenticateToken, PostDataController.loginUsers__); // Login para obtener el token
-app.get('/getUserList', authenticateToken, getDataController.listUsers__); // Lista de ususarios
+// El listado de usuarios y el alta/baja son solo para administradores.
+app.get('/getUserList', authenticateToken, PostDataController.soloAdmin, getDataController.listUsers__); // Lista de ususarios
 app.get('/getAfiliados', authenticateToken, getDataController.getAfiliados___); // Lista de afiliados
 app.get('/exportAfiliadosExcel', getDataController.exportAfiliadosExcel__); // Lista de afiliados
 
@@ -97,7 +98,7 @@ app.get('/getReporteCompleto', authenticateToken, getDataController.getReporteCo
 app.get('/getGraficoCasas', authenticateToken, getDataController.getGraficoCasas__);
 
 // POST y PUT functions
-app.post('/createUser', authenticateToken, PostDataController.userCreate__); //creacion de usuarios
+app.post('/createUser', authenticateToken, PostDataController.soloAdmin, PostDataController.userCreate__); //creacion de usuarios
 app.put('/resetPass', authenticateToken, PostDataController.resetPassword__); // Reseteo password
 app.put('/editField', authenticateToken, PostDataController.editField__); // Edit fields in data grid reports page (admin)
 
@@ -114,6 +115,7 @@ app.delete('/deleteAfiliado/:id', authenticateToken, PostDataController.deleteFi
 app.delete(
   '/deleteUser/:id',
   authenticateToken,
+  PostDataController.soloAdmin,
   PostDataController.deleteUser__
 ); //delete user by id
 

@@ -23,6 +23,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('jwtToken');
+    localStorage.removeItem('usuario');
+    localStorage.removeItem('rol');
     setUser({ username: '', role: '' });
     setIsLogin(false);
   };

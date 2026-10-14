@@ -118,44 +118,65 @@ export default function DashboardRD() {
   const d = datos;
   return (
     <Box sx={{ width: '100%', minWidth: 0 }}>
-      {/* avance: la métrica que importa */}
+      {/* avance: la métrica que importa. El total de 300 distritos solo aplica
+          a nivel nacional; una casa ve lo suyo sin porcentaje inventado. */}
       <Card sx={{ ...cardSx, mb: 2 }}>
         <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
           <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
             <Box>
               <Typography sx={{ fontSize: 13, color: 'text.secondary', fontWeight: 500 }}>
-                Avance de asignación
+                {d.nacional ? 'Avance de asignación' : `Tu casa · ${d.entidadUsuario || ''}`}
               </Typography>
               <Typography sx={{ fontSize: 30, fontWeight: 700, lineHeight: 1.2 }}>
-                {d.cargados} <Typography component='span' sx={{ fontSize: 17, color: 'text.secondary', fontWeight: 500 }}>de {d.totalDistritos} distritos</Typography>
+                {d.cargados}{' '}
+                <Typography component='span' sx={{ fontSize: 17, color: 'text.secondary', fontWeight: 500 }}>
+                  {d.nacional ? `de ${d.totalDistritos} distritos` : 'distritos cargados'}
+                </Typography>
               </Typography>
             </Box>
-            <Typography sx={{ fontSize: 34, fontWeight: 700, color: SLATE }}>{d.avance}%</Typography>
+            {d.nacional && (
+              <Typography sx={{ fontSize: 34, fontWeight: 700, color: SLATE }}>{d.avance}%</Typography>
+            )}
           </Box>
-          <LinearProgress
-            variant='determinate'
-            value={Math.min(d.avance, 100)}
-            sx={{
-              mt: 2, height: 10, borderRadius: 5,
-              backgroundColor: 'rgba(69,90,100,0.12)',
-              '& .MuiLinearProgress-bar': { borderRadius: 5, backgroundColor: SLATE },
-            }}
-          />
-          <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 1 }}>
-            Faltan {d.faltantes} distritos por asignar
-          </Typography>
+          {d.nacional && (
+            <>
+              <LinearProgress
+                variant='determinate'
+                value={Math.min(d.avance, 100)}
+                sx={{
+                  mt: 2, height: 10, borderRadius: 5,
+                  backgroundColor: 'rgba(69,90,100,0.12)',
+                  '& .MuiLinearProgress-bar': { borderRadius: 5, backgroundColor: SLATE },
+                }}
+              />
+              <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 1 }}>
+                Faltan {d.faltantes} distritos por asignar
+              </Typography>
+            </>
+          )}
         </CardContent>
       </Card>
 
-      {/* KPIs */}
+      {/* KPIs: los totales de 56 casas y 32 entidades solo le dicen algo al
+          usuario nacional. Una casa ve la calidad de sus propios datos. */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,minmax(0,1fr))', md: 'repeat(4,minmax(0,1fr))' }, gap: 2, mb: 2 }}>
         <Kpi icono={<PersonOutlineOutlinedIcon sx={{ fontSize: 18 }} />} label='Responsables cargados' valor={d.cargados} />
-        <Kpi icono={<HomeWorkOutlinedIcon sx={{ fontSize: 18 }} />} label='Casas que ya cargaron' valor={d.casas} pie='de 56' />
-        <Kpi icono={<MapOutlinedIcon sx={{ fontSize: 18 }} />} label='Entidades con avance' valor={d.entidades} pie='de 32' />
+        {d.nacional ? (
+          <>
+            <Kpi icono={<HomeWorkOutlinedIcon sx={{ fontSize: 18 }} />} label='Casas que ya cargaron' valor={d.casas} pie='de 56' />
+            <Kpi icono={<MapOutlinedIcon sx={{ fontSize: 18 }} />} label='Entidades con avance' valor={d.entidades} pie='de 32' />
+          </>
+        ) : (
+          <>
+            <Kpi icono={<HomeWorkOutlinedIcon sx={{ fontSize: 18 }} />} label='Sin teléfono' valor={d.sinTelefono} />
+            <Kpi icono={<MapOutlinedIcon sx={{ fontSize: 18 }} />} label='Sin correo' valor={d.sinCorreo} />
+          </>
+        )}
         <Kpi icono={<BadgeOutlinedIcon sx={{ fontSize: 18 }} />} label='Con INE vencido' valor={d.ineVencido} pie='requieren renovación' />
       </Box>
 
-      {/* detalle */}
+      {/* detalle: para una sola casa estos dos gráficos son una barra sola */}
+      {d.nacional && (
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2,minmax(0,1fr))' }, gap: 2, mb: 2 }}>
         <Card sx={cardSx}>
           <CardContent sx={{ p: '14px 16px !important' }}>
@@ -182,6 +203,7 @@ export default function DashboardRD() {
           </CardContent>
         </Card>
       </Box>
+      )}
 
       {/* calidad + actividad */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1.4fr' }, gap: 2 }}>

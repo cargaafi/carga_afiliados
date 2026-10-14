@@ -22,13 +22,13 @@ function Inicio() {
       {modulo === 'RG' && (
         <EstadoVacio
           modulo='RG'
-          accion='La carga de Responsables Generales todavía no está habilitada. Cuando lo esté, vas a ver acá el mismo avance que en RD.'
+          accion='La carga de Responsables Generales todavía no está habilitada. Cuando lo esté, verás aquí el mismo avance que en RD.'
         />
       )}
       {modulo === 'RC' && (
         <EstadoVacio
           modulo='RC'
-          accion='La carga de Responsables de Casilla todavía no está habilitada. Cuando lo esté, vas a ver acá el mismo avance que en RD.'
+          accion='La carga de Responsables de Casilla todavía no está habilitada. Cuando lo esté, verás aquí el mismo avance que en RD.'
         />
       )}
     </Box>

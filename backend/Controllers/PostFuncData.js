@@ -6,6 +6,41 @@ const jwt = require('jsonwebtoken');
 const secretkey = process.env.JWT_SECRET;
 const saltRounds = 10;
 
+// El token solo guarda el id, asi que el rol se busca en la base. Nunca se
+// confia en un rol que venga del cliente: cualquiera podria mandar "admin".
+function usuarioDelToken(req) {
+  return new Promise((resolve, reject) => {
+    const id = req.user && req.user.id;
+    if (!id) return resolve(null);
+    pool.query(
+      'SELECT id, username, role FROM users WHERE id = ?',
+      [id],
+      (error, filas) => {
+        if (error) return reject(error);
+        resolve(filas && filas.length ? filas[0] : null);
+      }
+    );
+  });
+}
+
+// Guard para las rutas que solo puede tocar un administrador.
+async function soloAdmin(req, res, next) {
+  try {
+    const actual = await usuarioDelToken(req);
+    if (!actual || actual.role !== 'admin') {
+      return res.status(403).json({
+        code: 'NO_ADMIN',
+        message: 'Esta acción es solo para administradores',
+      });
+    }
+    req.usuarioActual = actual;
+    next();
+  } catch (error) {
+    console.error('Error verificando el rol del usuario', error);
+    return res.status(500).json({ message: 'No se pudo verificar el usuario' });
+  }
+}
+
 
 // Func para validar usuarios , executamos eso esto en terminal para generar el key = node -e "console.log(require('crypto').randomBytes(256).toString('base64'))
 function loginUsers__(req, res) {
@@ -56,6 +91,12 @@ function userCreate__(req, res) {
   const role = req.body.role;
   const password = req.body.password;
 
+  if (!username || !password) {
+    return res
+      .status(400)
+      .json({ message: 'Usuario y contraseña son obligatorios' });
+  }
+
   bcrypt.hash(password, saltRounds, (err, hash) => {
     if (err) {
       console.error('error in brypt.hash inside userCreate function', err);
@@ -88,6 +129,14 @@ function userCreate__(req, res) {
 function deleteUser__(req, res) {
   const id = req.params.id;
 
+  // soloAdmin ya dejo el usuario en req.usuarioActual: que no se borre a si
+  // mismo, porque se quedaria sin forma de administrar el sistema.
+  if (req.usuarioActual && String(req.usuarioActual.id) === String(id)) {
+    return res
+      .status(400)
+      .json({ message: 'No puedes borrar tu propio usuario' });
+  }
+
   const sqlDeleteUser = 'DELETE FROM users WHERE id = ?';
 
   pool.query(sqlDeleteUser, [id], (error, result) => {
@@ -105,7 +154,31 @@ function deleteUser__(req, res) {
 // Reset password
 async function resetPassword__(req, res) {
   const password = req.body.password;
-  const username = req.body.username;
+
+  if (!password) {
+    return res.status(400).json({ message: 'La contraseña no puede ir vacía' });
+  }
+
+  let actual;
+  try {
+    actual = await usuarioDelToken(req);
+  } catch (error) {
+    console.error('Error buscando el usuario del token', error);
+    return res.status(500).json({ message: 'No se pudo verificar el usuario' });
+  }
+  if (!actual) return res.status(403).json({ message: 'Usuario no válido' });
+
+  // Un usuario de casa solo puede cambiar SU propia contraseña. Si pide la de
+  // otro se le dice que no: antes se le cambiaba la propia y se le respondia
+  // "actualizada", que es mentirle sobre lo que paso.
+  const pedido = req.body.username;
+  if (actual.role !== 'admin' && pedido && pedido !== actual.username) {
+    return res.status(403).json({
+      code: 'NO_ADMIN',
+      message: 'Solo puedes cambiar tu propia contraseña',
+    });
+  }
+  const username = actual.role === 'admin' && pedido ? pedido : actual.username;
 
   bcrypt.hash(password, saltRounds, (err, hash) => {
     if (err) {
@@ -183,5 +256,6 @@ module.exports = {
   editField__,
   deleteUser__,
   userCreate__,
+  soloAdmin,
   deleteField__
 };

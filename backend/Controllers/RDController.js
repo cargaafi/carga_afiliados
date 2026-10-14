@@ -8,7 +8,31 @@ const pool = mysql
 const ExcelJS = require("exceljs");
 
 const HOJA_RD = "Responsables de Distrito";
-const VIGENCIA_MINIMA = 2026;
+// La credencial dice el AÑO hasta el que vale, y vale todo ese año: una con
+// vigencia 2026 sigue siendo valida durante 2026 y vence el 1/1/2027.
+// Se calcula con el año en curso, no fijo, para que no haya que tocar el
+// codigo cada enero.
+function vigenciaMinima() {
+  return new Date().getFullYear();
+}
+
+// La vigencia es el año impreso en la credencial, pero puede llegar como
+// numero (2027), como texto, o como fecha completa si quien capturo escribio
+// 01/01/2027 y Excel lo tomo como fecha. En todos los casos nos quedamos con
+// el año de 4 digitos; si no hay ninguno devolvemos null y lo reportamos.
+function anioVigencia(valor) {
+  if (valor instanceof Date) return valor.getFullYear();
+  const s = txt(valor);
+  if (!s) return null;
+  // Si la celda quedo formateada como fecha, Excel la guarda como numero de
+  // serie (46447 = 1/3/2027). No se confunde con un año escrito a mano: los
+  // años son de 4 digitos y las series de fechas reales pasan de 20000.
+  const n = Number(s);
+  if (Number.isFinite(n) && n > 20000 && n < 80000)
+    return new Date(Math.round((n - 25569) * 86400000)).getUTCFullYear();
+  const m = s.match(/(?:19|20)\d{2}/);
+  return m ? Number(m[0]) : null;
+}
 const MAX_FILAS_ENCABEZADO = 8; // hasta donde buscamos la fila de encabezados
 
 // Firma de la hoja RD: columnas ancla en su posicion exacta. Con estas 5 ya
@@ -139,6 +163,26 @@ const COLUMNAS_INE = [
   "cargo",
 ];
 
+// Nombres lindos para contarle al usuario que campos cambiaron.
+const NOMBRE_CAMPO = {
+  apellido_paterno: "apellido paterno",
+  apellido_materno: "apellido materno",
+  nombre: "nombre",
+  sexo: "sexo",
+  clave_elector: "clave de elector",
+  vigencia_ine: "vigencia INE",
+  telefono: "teléfono",
+  correo: "correo",
+  calle: "calle",
+  numero_exterior: "número exterior",
+  numero_interior: "número interior",
+  colonia: "colonia",
+  municipio_domicilio: "municipio",
+  estado_domicilio: "estado del domicilio",
+  codigo_postal: "código postal",
+  seccion_electoral: "sección electoral",
+};
+
 // Columnas N..AC: datos de la persona.
 const COLUMNAS_PERSONA = [
   "apellido_paterno",
@@ -183,7 +227,9 @@ function mapearFila(valores) {
     nombre: c(16) || null,
     sexo: c(17) || null,
     clave_elector: clave,
-    vigencia_ine: num(valores[19]),
+    vigencia_ine: anioVigencia(valores[19]),
+    // el texto tal cual vino, solo para poder explicar el descarte
+    vigencia_cruda: txt(valores[19]),
     telefono: limpiarTelefono(valores[20]),
     correo: c(21).toLowerCase() || null,
     calle: c(22) || null,
@@ -282,7 +328,7 @@ async function leerHojaRD(file) {
   if (!encontrada) {
     if (pareceRGoRC) {
       throw new Error(
-        `El archivo que subiste es el de Responsables Generales o de Casilla (hoja "${pareceRGoRC}"), no el de Distrito. Subí el que tiene la hoja "${HOJA_RD}".`
+        `El archivo que subiste es el de Responsables Generales o de Casilla (hoja "${pareceRGoRC}"), no el de Distrito. Sube el que tiene la hoja "${HOJA_RD}".`
       );
     }
     throw new Error(
@@ -303,12 +349,22 @@ async function uploadRD(req, res) {
     if (!usuario.nacional && !usuario.entidad_norm) {
       return res.status(403).json({
         message:
-          `Tu usuario (${usuario.username}) no está asociado a ninguna casa, así que no podés cargar. ` +
+          `Tu usuario (${usuario.username}) no está asociado a ninguna casa, así que no puedes cargar. ` +
           `El nombre de usuario tiene que ser del tipo "Casa_14".`,
       });
     }
 
     const filas = await leerHojaRD(req.file);
+
+    // Para poder decirle al usuario de qué casa es el distrito que descartamos.
+    // Una entidad puede tener varias casas (CDMX tiene 5), por eso es una lista.
+    const [todasLasCasas] = await pool.query("SELECT casa, entidad_norm FROM casas");
+    const casasPorEntidad = new Map();
+    for (const c of todasLasCasas) {
+      if (!casasPorEntidad.has(c.entidad_norm)) casasPorEntidad.set(c.entidad_norm, []);
+      casasPorEntidad.get(c.entidad_norm).push(c.casa);
+    }
+    for (const lista of casasPorEntidad.values()) lista.sort((a, b) => a - b);
 
     const resumen = {
       filasLeidas: filas.length,
@@ -318,14 +374,26 @@ async function uploadRD(req, res) {
       sinCambios: 0,
       sinResponsable: 0,
       descartados: { claveInvalida: 0, sinDistrito: 0, otroEstado: 0 },
-      avisos: { vigencia: 0, sexo: 0, telefono: 0, correo: 0 },
+      avisos: { vigencia: 0, vigenciaVencida: 0, sexo: 0, telefono: 0, correo: 0 },
       entidadUsuario: usuario.nacional ? "Todas" : usuario.entidad,
       detalle: [],
+      cambios: [],
     };
     const agregarDetalle = (fila, motivo) => {
       if (resumen.detalle.length < 50)
         resumen.detalle.push({ fila: fila.numero, motivo });
     };
+    const agregarCambio = (fila, d, texto) => {
+      if (resumen.cambios.length < 100)
+        resumen.cambios.push({
+          fila: fila.numero,
+          ubicacion: `${d.estado} · distrito ${d.distrito_federal}`,
+          texto,
+        });
+    };
+    const nombreCompleto = (o) =>
+      [o.nombre, o.apellido_paterno, o.apellido_materno].filter(Boolean).join(" ") ||
+      "(sin nombre)";
 
     conexion = await pool.getConnection();
     await conexion.beginTransaction();
@@ -347,27 +415,45 @@ async function uploadRD(req, res) {
 
       if (!usuario.nacional && d.estado_norm !== usuario.entidad_norm) {
         resumen.descartados.otroEstado++;
+        const ajenas = casasPorEntidad.get(d.estado_norm);
+        let deQuien;
+        if (!ajenas || !ajenas.length) deQuien = "de otra casa";
+        else if (ajenas.length === 1) deQuien = `de la casa ${ajenas[0]}`;
+        else
+          deQuien = `de las casas ${ajenas.slice(0, -1).join(", ")} y ${
+            ajenas[ajenas.length - 1]
+          }`;
         agregarDetalle(
           fila,
-          `${d.estado} (distrito ${d.distrito_federal}) no es de tu casa`
+          `distrito ${d.distrito_federal} — es ${deQuien}, no de la tuya (casa ${usuario.casa})`
         );
         continue;
       }
 
       if (!claveElectorValida(d.clave_elector)) {
+        const clave = d.clave_elector;
         let motivo;
-        if (!d.clave_elector) motivo = "sin clave de elector";
-        else if (/^\d+$/.test(d.clave_elector))
-          motivo = `clave numérica (${d.clave_elector}) — se capturó como número y Excel le cambia los últimos dígitos`;
-        else motivo = `clave de elector inválida (${d.clave_elector})`;
+        if (!clave) {
+          motivo = "sin clave de elector";
+        } else if (/^\d+$/.test(clave)) {
+          motivo = `clave numérica (${clave}) — se capturó como número y Excel le cambia los últimos dígitos`;
+        } else if (/\s/.test(clave)) {
+          motivo = `la clave tiene espacios en blanco (${clave})`;
+        } else if (clave.length !== 18) {
+          motivo = `la clave tiene ${clave.length} caracteres y deben ser 18 (${clave})`;
+        } else {
+          motivo = `clave inválida: las posiciones 7 a 12 tienen que ser la fecha de nacimiento en números (${clave})`;
+        }
         resumen.descartados.claveInvalida++;
         agregarDetalle(fila, motivo);
         continue;
       }
 
-      // avisos: no frenan la carga
-      if (d.vigencia_ine === null || d.vigencia_ine < VIGENCIA_MINIMA)
-        resumen.avisos.vigencia++;
+      // avisos: no frenan la carga. La INE vencida se reporta pero el registro
+      // se crea igual: el responsable existe aunque tenga que renovar.
+      const anio = d.vigencia_ine;
+      if (anio !== null && anio < vigenciaMinima()) resumen.avisos.vigenciaVencida++;
+      if (anio === null) resumen.avisos.vigencia++;
       if (d.sexo && !["HOMBRE", "MUJER"].includes(norm(d.sexo)))
         resumen.avisos.sexo++;
       if (d.telefono && !/^\d{10}$/.test(d.telefono)) resumen.avisos.telefono++;
@@ -397,6 +483,7 @@ async function uploadRD(req, res) {
       const cambioPersona = String(actual.clave_elector ?? "") !== d.clave_elector;
       const sets = [];
       const valores = [];
+      const camposCambiados = [];
 
       if (cambioPersona) {
         // Responsable distinto: se reescribe el bloque entero, vacios incluidos,
@@ -413,6 +500,7 @@ async function uploadRD(req, res) {
           if (String(actual[col] ?? "") === String(nuevo)) continue;
           sets.push(`${col} = ?`);
           valores.push(nuevo);
+          camposCambiados.push(NOMBRE_CAMPO[col] || col);
         }
       }
 
@@ -436,8 +524,17 @@ async function uploadRD(req, res) {
       valores.push(usuario.casa, usuario.username, actual.id);
       await conexion.query(`UPDATE RD SET ${sets.join(", ")} WHERE id = ?`, valores);
 
-      if (cambioPersona) resumen.reemplazados++;
-      else resumen.actualizados++;
+      if (cambioPersona) {
+        resumen.reemplazados++;
+        agregarCambio(
+          fila,
+          d,
+          `cambió el responsable: ${nombreCompleto(actual)} → ${nombreCompleto(d)}`
+        );
+      } else {
+        resumen.actualizados++;
+        agregarCambio(fila, d, `se actualizó ${camposCambiados.join(", ")}`);
+      }
     }
 
     await conexion.commit();
@@ -468,5 +565,6 @@ module.exports = {
   casaDeUsuario,
   mapearFila,
   leerHojaRD,
+  resolverUsuario,
   padNum,
 };

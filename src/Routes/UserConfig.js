@@ -45,7 +45,10 @@ const userColumns = [
 function UserCreate() {
   const { userCreate, setUserCreate, user } = useAuth();
   const [listUser, setListUser] = useState([]);
-  const [valueTab, setValueTab] = useState('createUser');
+  // El alta de usuarios y el listado son solo del administrador. Un usuario de
+  // casa entra acá únicamente a cambiar su propia contraseña.
+  const esAdmin = user.role === 'admin';
+  const [valueTab, setValueTab] = useState(esAdmin ? 'createUser' : 'resetPassword');
   const [newPass, setNewPass] = useState('');
   const handleChange = (event, newValue) => {
     setValueTab(newValue);
@@ -156,8 +159,12 @@ function UserCreate() {
     }
   };
   useEffect(() => {
-    getUserData();
-  }, []);
+    // el rol llega un render después cuando la sesión se restaura del storage
+    setValueTab(esAdmin ? 'createUser' : 'resetPassword');
+    // un usuario de casa no puede pedir el listado: el backend le responde 403
+    if (esAdmin) getUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [esAdmin]);
   const passReset = async (e) => {
     e.preventDefault();
     // Muestra en consola los valores que se van a enviar
@@ -216,10 +223,13 @@ function UserCreate() {
                 Administración de Usuarios
               </Typography>
               <Typography sx={{ fontSize: 14, color: 'text.secondary', mt: 0.5 }}>
-                Creá nuevos usuarios o restablecé contraseñas del sistema
+                {esAdmin
+                  ? 'Crea nuevos usuarios o restablece contraseñas del sistema'
+                  : 'Cambia la contraseña de tu usuario'}
               </Typography>
             </Box>
             <CardContent sx={{ pt: 2 }}>
+              {esAdmin && (
               <Tabs
                 value={valueTab}
                 onChange={handleChange}
@@ -244,13 +254,14 @@ function UserCreate() {
                 <Tab label='Crear usuario' value='createUser' />
                 <Tab label='Restablecer contraseña' value='resetPassword' />
               </Tabs>
+              )}
 
-              {valueTab === 'createUser' && (
+              {esAdmin && valueTab === 'createUser' && (
                 <Box component='form' onSubmit={addNewUser}>
                   <Typography
                     sx={{ fontSize: 13, color: 'text.secondary', mb: 2.5, textAlign: 'center' }}
                   >
-                    Ingresá los datos del nuevo usuario
+                    Ingresa los datos del nuevo usuario
                   </Typography>
                   <Grid container spacing={2} justifyContent='center'>
                     <Grid size={{ xs: 12, md: 4 }}>
@@ -343,20 +354,24 @@ function UserCreate() {
               )}
             </CardContent>
 
-            <Divider />
+            {esAdmin && (
+              <>
+                <Divider />
 
-            <CardContent>
-              <Typography sx={{ fontSize: 16, fontWeight: 600, mb: 2 }}>
-                Usuarios registrados
-              </Typography>
-              <GridUsers
-                rows={listUser}
-                columnsVar={userColumns}
-                onDelete={handleDelete}
-                fileNameVar='UserList'
-                showDeleteColumn={true}
-              />
-            </CardContent>
+                <CardContent>
+                  <Typography sx={{ fontSize: 16, fontWeight: 600, mb: 2 }}>
+                    Usuarios registrados
+                  </Typography>
+                  <GridUsers
+                    rows={listUser}
+                    columnsVar={userColumns}
+                    onDelete={handleDelete}
+                    fileNameVar='UserList'
+                    showDeleteColumn={true}
+                  />
+                </CardContent>
+              </>
+            )}
           </Card>
         </Box>
       </Container>
