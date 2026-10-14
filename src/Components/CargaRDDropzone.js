@@ -64,6 +64,14 @@ function armarResumenHtml(r) {
       'Ver detalle de los descartados',
       r.detalle,
       (x) => `<li style="margin-bottom:3px;">Fila ${x.fila}: ${x.motivo}</li>`
+    ) +
+    bloqueDetalle(
+      'Ver qué se cargó con avisos',
+      r.avisosDetalle,
+      (x) =>
+        `<li style="margin-bottom:3px;">Fila ${x.fila}${
+          x.distrito ? ` · distrito ${x.distrito}` : ''
+        }: ${x.texto}</li>`
     );
 
   const conDatos = r.filasLeidas - (r.sinResponsable || 0);

@@ -378,11 +378,22 @@ async function uploadRD(req, res) {
       avisos: { vigencia: 0, vigenciaVencida: 0, sexo: 0, telefono: 0, correo: 0 },
       entidadUsuario: usuario.nacional ? "Todas" : usuario.entidad,
       detalle: [],
+      avisosDetalle: [],
       cambios: [],
     };
     const agregarDetalle = (fila, motivo) => {
       if (resumen.detalle.length < 50)
         resumen.detalle.push({ fila: fila.numero, motivo });
+    };
+    // La fila se cargo, pero hay algo que conviene corregir: se lista aparte
+    // de los descartados, que son los que NO entraron.
+    const agregarAviso = (fila, d, texto) => {
+      if (resumen.avisosDetalle.length < 50)
+        resumen.avisosDetalle.push({
+          fila: fila.numero,
+          distrito: d.distrito_federal,
+          texto,
+        });
     };
     const agregarCambio = (fila, d, texto) => {
       if (resumen.cambios.length < 100)
@@ -451,14 +462,35 @@ async function uploadRD(req, res) {
       }
 
       // avisos: no frenan la carga. La INE vencida se reporta pero el registro
-      // se crea igual: el responsable existe aunque tenga que renovar.
+      // se crea igual: el responsable existe aunque tenga que renovar. Ademas
+      // del contador se guarda la fila, para que se sepa cual corregir.
       const anio = d.vigencia_ine;
-      if (anio !== null && anio < vigenciaMinima()) resumen.avisos.vigenciaVencida++;
-      if (anio === null) resumen.avisos.vigencia++;
-      if (d.sexo && !["HOMBRE", "MUJER"].includes(norm(d.sexo)))
+      const motivosAviso = [];
+      if (anio !== null && anio < vigenciaMinima()) {
+        resumen.avisos.vigenciaVencida++;
+        motivosAviso.push(`INE vencida (vigencia ${anio})`);
+      }
+      if (anio === null) {
+        resumen.avisos.vigencia++;
+        motivosAviso.push(
+          d.vigencia_cruda
+            ? `no se entiende la vigencia de la INE ("${d.vigencia_cruda}")`
+            : "sin vigencia de INE"
+        );
+      }
+      if (d.sexo && !["HOMBRE", "MUJER"].includes(norm(d.sexo))) {
         resumen.avisos.sexo++;
-      if (d.telefono && !/^\d{10}$/.test(d.telefono)) resumen.avisos.telefono++;
-      if (d.correo && !correoValido(d.correo)) resumen.avisos.correo++;
+        motivosAviso.push(`sexo "${d.sexo}" no es Hombre ni Mujer`);
+      }
+      if (d.telefono && !/^\d{10}$/.test(d.telefono)) {
+        resumen.avisos.telefono++;
+        motivosAviso.push(`teléfono inválido (${d.telefono})`);
+      }
+      if (d.correo && !correoValido(d.correo)) {
+        resumen.avisos.correo++;
+        motivosAviso.push(`correo inválido (${d.correo})`);
+      }
+      if (motivosAviso.length) agregarAviso(fila, d, motivosAviso.join(" · "));
 
       const [existentes] = await conexion.query(
         "SELECT * FROM RD WHERE estado_norm = ? AND distrito_federal = ? LIMIT 1",
