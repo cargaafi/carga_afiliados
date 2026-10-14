@@ -54,7 +54,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:5022',
-  'https://carga-afiliados.onrender.com',      // frontend (Render)
+  'https://carga-registros.onrender.com',      // frontend (Render) -- el que se usa
+  'https://carga-afiliados.onrender.com',      // frontend viejo, antes del rename
   'https://carga-afiliados-back.onrender.com'  // backend (Render)
 ];
 
