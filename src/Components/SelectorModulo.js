@@ -4,10 +4,12 @@ import { Box, Typography } from '@mui/material';
 export const SLATE = '#455A64';
 export const SLATE_OSCURO = '#37474F';
 
+// Solo la sigla en todos lados: nada de "Responsables de Distrito/Generales/
+// de Casilla" a la vista.
 export const MODULOS = [
-  { id: 'RD', titulo: 'RD', detalle: 'Responsables de Distrito' },
-  { id: 'RG', titulo: 'RG', detalle: 'Responsables Generales' },
-  { id: 'RC', titulo: 'RC', detalle: 'Responsables de Casilla' },
+  { id: 'RD', titulo: 'RD' },
+  { id: 'RG', titulo: 'RG' },
+  { id: 'RC', titulo: 'RC' },
 ];
 
 /**
@@ -64,15 +66,6 @@ export function SelectorModulo({ valor, onChange, conteos = {} }) {
             >
               {m.titulo}
             </Typography>
-            <Typography
-              sx={{
-                fontSize: 12,
-                color: 'text.secondary',
-                display: { xs: 'none', md: 'block' },
-              }}
-            >
-              {m.detalle}
-            </Typography>
             {n !== undefined && (
               <Box
                 sx={{
@@ -99,7 +92,6 @@ export function SelectorModulo({ valor, onChange, conteos = {} }) {
 
 /** Pantalla para los módulos que todavía no existen. */
 export function EstadoVacio({ modulo, accion }) {
-  const m = MODULOS.find((x) => x.id === modulo);
   return (
     <Box
       sx={{
@@ -130,7 +122,7 @@ export function EstadoVacio({ modulo, accion }) {
         </svg>
       </Box>
       <Typography sx={{ fontSize: 16, fontWeight: 600 }}>
-        Todavía no hay datos de {m ? m.detalle : modulo}
+        Todavía no hay datos de {modulo}
       </Typography>
       <Typography sx={{ fontSize: 13.5, color: 'text.secondary', maxWidth: 420 }}>
         {accion || `Cuando se habilite la carga de ${modulo}, la información aparecerá aquí.`}

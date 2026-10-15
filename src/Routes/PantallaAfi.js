@@ -15,7 +15,7 @@ function PantallaAfi() {
           Responsables Cargados
         </Typography>
         <Typography sx={{ fontSize: 14, color: 'text.secondary', mt: 0.5, mb: 2 }}>
-          Listado de lo que hay en la base
+          Listado de lo Cargado en el sistema.
         </Typography>
         <SelectorModulo valor={modulo} onChange={setModulo} />
       </Box>
