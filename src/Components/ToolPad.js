@@ -301,14 +301,11 @@ function DashboardLayoutPattern() {
           title: 'Carga RD',
           icon: <IconoSigla>RD</IconoSigla>,
         },
-        // RG está listo y probado, pero oculto hasta que se habilite para los
-        // usuarios. Para mostrarlo alcanza con descomentar esto: la pantalla,
-        // la ruta y el endpoint siguen enteros.
-        // {
-        //   segment: 'CargaRG',
-        //   title: 'Carga RG',
-        //   icon: <IconoSigla>RG</IconoSigla>,
-        // },
+        {
+          segment: 'CargaRG',
+          title: 'Carga RG',
+          icon: <IconoSigla>RG</IconoSigla>,
+        },
         // Oculta por ahora. Para reactivarla, descomentar: la pantalla sigue entera.
         // {
         //   segment: 'CargaExcel',

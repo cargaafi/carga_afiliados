@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { SelectorModulo, EstadoVacio, SLATE } from '../Components/SelectorModulo';
-import DashboardRD from '../Components/DashboardRD';
+import DashboardModulo from '../Components/DashboardModulo';
 
 function Inicio() {
   const [modulo, setModulo] = useState('RD');
@@ -18,11 +18,14 @@ function Inicio() {
         <SelectorModulo valor={modulo} onChange={setModulo} />
       </Box>
 
-      {modulo === 'RD' && <DashboardRD />}
+      {modulo === 'RD' && <DashboardModulo endpoint='/rdResumen' unidad='distritos' />}
       {modulo === 'RG' && (
-        <EstadoVacio
-          modulo='RG'
-          accion='La carga de Responsables Generales todavía no está habilitada. Cuando lo esté, verás aquí el mismo avance que en RD.'
+        <DashboardModulo
+          endpoint='/rgResumen'
+          unidad='casillas'
+          etiquetaCargados='casillas cargadas'
+          etiquetaAsignados='casillas asignadas'
+          ubicacion={(u) => `sección ${u.seccion_electoral_ubic} · casilla ${u.casilla}`}
         />
       )}
       {modulo === 'RC' && (

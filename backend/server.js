@@ -14,6 +14,7 @@ const ExcelController = require('./Controllers/ExcelController');
 const RDController = require('./Controllers/RDController');
 const RDReporteController = require('./Controllers/RDReporteController');
 const RGController = require('./Controllers/RGController');
+const RGReporteController = require('./Controllers/RGReporteController');
 const progressManager = require('./Controllers/Progress');
 //multer
 const upload = multer({ dest: 'uploads/' });
@@ -86,8 +87,9 @@ const progressLimiter = rateLimit({
   max: 300, // Permite 300 requests en 15 minutos 
 });
 
-app.get('/upload-progress',progressLimiter, (req, res) => {
-  res.json(progressManager.getProgress());
+// Pide token: cada usuario lee el progreso de SU carga, no el de otro.
+app.get('/upload-progress', progressLimiter, authenticateToken, (req, res) => {
+  res.json(progressManager.getProgress(req.user && req.user.id));
 });
 
 app.post('/loginUsers', authenticateToken, PostDataController.loginUsers__); // Login para obtener el token
@@ -121,6 +123,9 @@ app.get('/rdListado', authenticateToken, RDReporteController.getListadoRD);
 // Carga de Responsables Generales. Mismas reglas que RD pero con tabla de paso:
 // son 173 mil filas y un SELECT por fila no termina nunca.
 app.post('/uploadRG', authenticateToken, upload.single('file'), RGController.uploadRG);
+app.get('/rgResumen', authenticateToken, RGReporteController.getResumenRG);
+app.get('/rgListado', authenticateToken, RGReporteController.getListadoRG);
+app.get('/rgExportar', authenticateToken, RGReporteController.exportarRG);
 
 app.delete('/deleteAfiliado/:id', authenticateToken, PostDataController.deleteField__);
 

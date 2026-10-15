@@ -90,6 +90,13 @@ const TIENE_PERSONA = /<c r="(?:N|O|P|Q|R|S|T|U|V|W|X|Y|Z|AA|AB|AC|AD)\d+"[^>]*[
 const MAX_FILAS_ENCABEZADO = 8;
 const TAMANO_LOTE = 1000;
 
+// Topes del detalle que viaja al navegador.
+const MAX_DETALLE = 2000;
+const MAX_DETALLE_AJENAS = 100;
+
+// Reintentos de la fase de escritura cuando dos cargas se traban entre si.
+const MAX_REINTENTOS = 4;
+
 // Columnas A..M de RG. Se sellan en la primera carga, igual que en RD.
 const COLUMNAS_UBICACION = [
   "seccion_electoral_ubic",
@@ -226,11 +233,24 @@ async function uploadRG(req, res) {
       cambios: [],
       segundos: 0,
     };
-    const agregarDetalle = (fila, motivo) => {
-      if (resumen.detalle.length < 50) resumen.detalle.push({ fila, motivo });
+    // Los errores a corregir se listan casi todos. Las filas de otras casas
+    // van con tope chico: con el archivo completo son 168 mil y no son un
+    // error, pasa siempre que alguien sube la plantilla entera. El contador
+    // las cuenta igual.
+    let listadosError = 0;
+    let listadosAjenos = 0;
+    const agregarDetalle = (fila, motivo, esAjena = false) => {
+      if (esAjena) {
+        if (listadosAjenos >= MAX_DETALLE_AJENAS) return;
+        listadosAjenos++;
+      } else {
+        if (listadosError >= MAX_DETALLE) return;
+        listadosError++;
+      }
+      resumen.detalle.push({ fila, motivo, ajena: esAjena || undefined });
     };
     const agregarAviso = (fila, d, texto) => {
-      if (resumen.avisosDetalle.length < 50)
+      if (resumen.avisosDetalle.length < MAX_DETALLE)
         resumen.avisosDetalle.push({
           fila,
           distrito: `sección ${d.seccion_electoral_ubic} · casilla ${d.casilla}`,
@@ -241,7 +261,7 @@ async function uploadRG(req, res) {
     // ---------------------------------------------------------------
     // 1) leer + filtrar en memoria, e ir mandando lotes a la temporal
     // ---------------------------------------------------------------
-    progressManager.updateProgress({ progress: 0, speed: 0, estimatedRemaining: { minutes: 0, seconds: 0 } });
+    progressManager.updateProgress({ progress: 0, speed: 0, estimatedRemaining: { minutes: 0, seconds: 0 } }, usuario.id);
 
     let lote = [];
     const vistas = new Set(); // llaves ya vistas en ESTE archivo
@@ -284,7 +304,8 @@ async function uploadRG(req, res) {
         agregarDetalle(
           nro,
           `sección ${d.seccion_electoral_ubic} · casilla ${d.casilla} — corresponde ` +
-            `${V.frasePertenencia(mapaCasas, d.estado_norm)}, no a la casa ${usuario.casa}`
+            `${V.frasePertenencia(mapaCasas, d.estado_norm)}, no a la casa ${usuario.casa}`,
+          true // es de otra casa: tope aparte
         );
         continue;
       }
@@ -335,7 +356,7 @@ async function uploadRG(req, res) {
               minutes: Math.floor(restantes / Math.max(porSegundo, 1) / 60),
               seconds: Math.round((restantes / Math.max(porSegundo, 1)) % 60),
             },
-          });
+          }, usuario.id);
         }
       }
     }
@@ -345,45 +366,93 @@ async function uploadRG(req, res) {
     // ---------------------------------------------------------------
     // 2) contar y escribir
     // ---------------------------------------------------------------
-    conexion = await pool.getConnection();
-    await conexion.beginTransaction();
-
     const JOIN = `
       r.estado_norm = t.estado_norm
       AND r.seccion_electoral_ubic = t.seccion_electoral_ubic
       AND r.tipo_casilla = t.tipo_casilla
       AND r.casilla = t.casilla`;
 
-    // Si la casilla vino repetida en el archivo, gana la ultima. Se compara por
-    // numero de fila del Excel y no por id de la temporal: asi el resultado no
-    // depende del orden en que se escribieron los lotes.
-    const ULTIMA = `
-      t.fila_excel = (SELECT MAX(t2.fila_excel) FROM temp_RG t2
-                      WHERE t2.carga_id = t.carga_id
-                        AND t2.estado_norm = t.estado_norm
-                        AND t2.seccion_electoral_ubic = t.seccion_electoral_ubic
-                        AND t2.tipo_casilla = t.tipo_casilla
-                        AND t2.casilla = t.casilla)`;
+    // Si la casilla vino repetida en el archivo, gana la ultima. Antes esto
+    // era una subconsulta correlacionada dentro del INSERT y del UPDATE: se
+    // evaluaba UNA VEZ POR FILA sobre una temp_RG que, con varias cargas a la
+    // vez, tiene decenas de miles de filas. Medido: un INSERT de 5.000 filas
+    // llegaba a bloquear 28.000, y con 10 cargas simultaneas la base cortaba
+    // por "lock wait timeout".
+    //
+    // Ahora se resuelve ANTES, con una sola sentencia que borra las repetidas
+    // y deja la ultima. Y solo se ejecuta si de verdad hubo repetidas, cosa
+    // que ya sabemos de la lectura.
+    if (resumen.descartados.repetidaEnArchivo > 0) {
+      await pool.query(
+        `DELETE vieja FROM temp_RG vieja
+           JOIN temp_RG nueva
+             ON nueva.carga_id = vieja.carga_id
+            AND nueva.estado_norm = vieja.estado_norm
+            AND nueva.seccion_electoral_ubic = vieja.seccion_electoral_ubic
+            AND nueva.tipo_casilla = vieja.tipo_casilla
+            AND nueva.casilla = vieja.casilla
+            AND nueva.fila_excel > vieja.fila_excel
+         WHERE vieja.carga_id = ?`,
+        [cargaId]
+      );
+    }
 
-    const [[conteos]] = await conexion.query(
+    // Escribir en RG desde varias cargas a la vez provoca interbloqueos: el
+    // INSERT...SELECT y el UPDATE toman candados sobre el indice unico y dos
+    // transacciones concurrentes se traban. InnoDB corta una y pide
+    // reintentarla ("try restarting transaction"), asi que eso hacemos. Medido:
+    // con 5 cargas simultaneas fallaban 2 de 5 sin esto.
+    let conteos, upd;
+    for (let intento = 1; ; intento++) {
+      try {
+        conexion = await pool.getConnection();
+        // READ COMMITTED en vez del REPEATABLE READ por defecto: con el nivel
+        // por defecto, el INSERT...SELECT toma candados de RANGO sobre los
+        // indices y termina bloqueando filas de OTRAS cargas, aunque cada una
+        // trabaje sobre su propio carga_id. Medido: con 10 cargas a la vez
+        // daba "Lock wait timeout exceeded". Acá no hace falta repeatable
+        // read: cada carga solo lee lo suyo.
+        await conexion.query("SET TRANSACTION ISOLATION LEVEL READ COMMITTED");
+        await conexion.beginTransaction();
+        ({ conteos, upd } = await escribir(conexion));
+        await conexion.commit();
+        break;
+      } catch (e) {
+        if (conexion) {
+          try { await conexion.rollback(); } catch (_) {}
+          conexion.release();
+          conexion = null;
+        }
+        const trabado = e.code === "ER_LOCK_DEADLOCK" || e.code === "ER_LOCK_WAIT_TIMEOUT";
+        if (!trabado || intento >= MAX_REINTENTOS) throw e;
+        // espera creciente y con un poco de azar, para que dos cargas trabadas
+        // entre si no vuelvan a chocar en el mismo instante
+        const espera = 120 * intento + Math.floor(Math.random() * 180);
+        console.warn(`RG: interbloqueo en el intento ${intento}, reintentando en ${espera} ms`);
+        await new Promise((r) => setTimeout(r, espera));
+      }
+    }
+
+    async function escribir(cx) {
+    const [[conteos]] = await cx.query(
       `SELECT
          SUM(r.id IS NULL)                                               AS nuevos,
          SUM(r.id IS NOT NULL AND r.clave_elector <> t.clave_elector)    AS reemplazados,
          SUM(r.id IS NOT NULL AND r.clave_elector = t.clave_elector)     AS existentes
        FROM temp_RG t
        LEFT JOIN RG r ON ${JOIN}
-       WHERE t.carga_id = ? AND ${ULTIMA}`,
+       WHERE t.carga_id = ?`,
       [cargaId]
     );
 
     // nuevos
     const colsInsert = [...COLUMNAS_UBICACION, ...V.COLUMNAS_PERSONA, "casa_carga", "usuario_subida"];
-    await conexion.query(
+    await cx.query(
       `INSERT INTO RG (${colsInsert.join(", ")})
        SELECT ${[...COLUMNAS_UBICACION, ...V.COLUMNAS_PERSONA].map((c) => "t." + c).join(", ")}, ?, ?
        FROM temp_RG t
        LEFT JOIN RG r ON ${JOIN}
-       WHERE t.carga_id = ? AND r.id IS NULL AND ${ULTIMA}`,
+       WHERE t.carga_id = ? AND r.id IS NULL`,
       [usuario.casa, usuario.username, cargaId]
     );
 
@@ -394,16 +463,17 @@ async function uploadRG(req, res) {
         `r.${c} = IF(r.clave_elector <> t.clave_elector, t.${c}, COALESCE(NULLIF(t.${c}, ''), r.${c}))`
     ).join(",\n        ");
 
-    const [upd] = await conexion.query(
+    const [upd] = await cx.query(
       `UPDATE RG r
          JOIN temp_RG t ON ${JOIN}
        SET ${setsPersona},
            r.casa_carga = ?, r.usuario_subida = ?
-       WHERE t.carga_id = ? AND ${ULTIMA}`,
+       WHERE t.carga_id = ?`,
       [usuario.casa, usuario.username, cargaId]
     );
 
-    await conexion.commit();
+    return { conteos, upd };
+    }
 
     resumen.nuevos = Number(conteos.nuevos) || 0;
     resumen.reemplazados = Number(conteos.reemplazados) || 0;
@@ -414,12 +484,19 @@ async function uploadRG(req, res) {
       0
     );
 
-    await conexion.query("DELETE FROM temp_RG WHERE carga_id = ?", [cargaId]);
+    // La carga ya está confirmada en RG: si limpiar la temporal falla por
+    // contención, no se puede tirar abajo una carga que salió bien. Quedan
+    // unas filas sueltas, que la próxima carga de ese usuario borra igual.
+    try {
+      await conexion.query("DELETE FROM temp_RG WHERE carga_id = ?", [cargaId]);
+    } catch (e) {
+      console.warn(`RG: no se pudo limpiar temp_RG de ${cargaId}: ${e.message}`);
+    }
     conexion.release();
     conexion = null;
 
     resumen.segundos = Number(((Date.now() - arranque) / 1000).toFixed(1));
-    progressManager.updateProgress({ progress: 100, speed: 0, estimatedRemaining: { minutes: 0, seconds: 0 } });
+    progressManager.terminar(usuario.id);
 
     await pool
       .query(
@@ -460,6 +537,8 @@ async function uploadRG(req, res) {
       error: error.toString(),
     });
   } finally {
+    // si la carga se corto a la mitad, la barra no puede quedar clavada
+    progressManager.terminar(req.user && req.user.id);
     if (req.file && req.file.path) {
       fs.promises.unlink(req.file.path).catch((e) => {
         console.error("No se pudo borrar el temporal", req.file.path, e.message);

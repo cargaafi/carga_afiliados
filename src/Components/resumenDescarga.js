@@ -66,8 +66,6 @@ export function armarTexto({ modulo, resumen: r, usuario, archivo, fecha = new D
     if (a.correo) L.push(linea('Correo inválido', a.correo));
   }
 
-  // El servidor manda como máximo 50 de cada lista: con 170 mil descartes no
-  // tiene sentido mandarlos todos. Se avisa para que nadie crea que son todos.
   const bloque = (tit, lista, total, render) => {
     if (!lista || !lista.length) return;
     const recortado = total && total > lista.length;
@@ -76,7 +74,20 @@ export function armarTexto({ modulo, resumen: r, usuario, archivo, fecha = new D
     if (recortado) L.push(`\n  [...] se omitieron ${total - lista.length} más.`);
   };
 
-  bloque('DETALLE DE LO QUE NO SE CARGÓ', r.detalle, noCargados + (d.repetidaEnArchivo || 0),
+  // El servidor separa los errores a corregir de las filas que son de otra
+  // casa: de los primeros manda hasta 2000, de las segundas solo 100, porque
+  // con el archivo completo son decenas de miles y no son un error.
+  const errores = (r.detalle || []).filter((x) => !x.ajena);
+  const ajenas = (r.detalle || []).filter((x) => x.ajena);
+
+  bloque(
+    'DETALLE DE LO QUE NO SE CARGÓ',
+    errores,
+    (d.claveInvalida || 0) + (d.sinDistrito || 0) + (d.sinCasilla || 0) + (d.repetidaEnArchivo || 0),
+    (x) => `Fila ${x.fila}: ${x.motivo}`
+  );
+
+  bloque('FILAS QUE CORRESPONDEN A OTRAS CASAS', ajenas, d.otroEstado || 0,
     (x) => `Fila ${x.fila}: ${x.motivo}`);
 
   bloque('DETALLE DE LO QUE SE CARGÓ CON AVISOS', r.avisosDetalle, null,

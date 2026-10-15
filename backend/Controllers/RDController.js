@@ -36,6 +36,11 @@ function anioVigencia(valor) {
 }
 const MAX_FILAS_ENCABEZADO = 8; // hasta donde buscamos la fila de encabezados
 
+// Topes del detalle que viaja al navegador. Los errores a corregir van casi
+// todos; las filas de otras casas van con tope chico porque no son un error.
+const MAX_DETALLE = 2000;
+const MAX_DETALLE_AJENAS = 100;
+
 // Firma de la hoja RD: columnas ancla en su posicion exacta. Con estas 5 ya
 // sabemos que es RD y que las columnas no se corrieron.
 // RG y RC arrancan con "Seccion Electoral" / "Tipo de Seccion" / "Casilla",
@@ -381,14 +386,27 @@ async function uploadRD(req, res) {
       avisosDetalle: [],
       cambios: [],
     };
-    const agregarDetalle = (fila, motivo) => {
-      if (resumen.detalle.length < 50)
-        resumen.detalle.push({ fila: fila.numero, motivo });
+    // Los errores que hay que corregir se listan practicamente todos: en RD
+    // hay 300 filas como maximo, asi que el tope nunca se alcanza.
+    // Las de "corresponde a otra casa" van aparte y con tope chico: no son un
+    // error (pasa siempre que alguien sube el archivo completo) y listarlas
+    // todas solo haria el resumen ilegible. El contador igual las cuenta.
+    let listadosError = 0;
+    let listadosAjenos = 0;
+    const agregarDetalle = (fila, motivo, esAjena = false) => {
+      if (esAjena) {
+        if (listadosAjenos >= MAX_DETALLE_AJENAS) return;
+        listadosAjenos++;
+      } else {
+        if (listadosError >= MAX_DETALLE) return;
+        listadosError++;
+      }
+      resumen.detalle.push({ fila: fila.numero, motivo, ajena: esAjena || undefined });
     };
     // La fila se cargo, pero hay algo que conviene corregir: se lista aparte
     // de los descartados, que son los que NO entraron.
     const agregarAviso = (fila, d, texto) => {
-      if (resumen.avisosDetalle.length < 50)
+      if (resumen.avisosDetalle.length < MAX_DETALLE)
         resumen.avisosDetalle.push({
           fila: fila.numero,
           distrito: d.distrito_federal,
@@ -437,7 +455,8 @@ async function uploadRD(req, res) {
           }`;
         agregarDetalle(
           fila,
-          `distrito ${d.distrito_federal} — corresponde ${deQuien}, no a la casa ${usuario.casa}`
+          `distrito ${d.distrito_federal} — corresponde ${deQuien}, no a la casa ${usuario.casa}`,
+          true // es de otra casa: tope aparte
         );
         continue;
       }
