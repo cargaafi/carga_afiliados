@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography } from '@mui/material';
-import { SelectorModulo, EstadoVacio, SLATE } from '../Components/SelectorModulo';
+import { SelectorModulo, SLATE } from '../Components/SelectorModulo';
 import DashboardModulo from '../Components/DashboardModulo';
 
 function Inicio() {
@@ -29,9 +29,12 @@ function Inicio() {
         />
       )}
       {modulo === 'RC' && (
-        <EstadoVacio
-          modulo='RC'
-          accion='La carga de Responsables de Casilla todavía no está habilitada. Cuando lo esté, verás aquí el mismo avance que en RD.'
+        <DashboardModulo
+          endpoint='/rcResumen'
+          unidad='responsables'
+          etiquetaCargados='responsables cargados'
+          etiquetaAsignados='responsables asignados'
+          ubicacion={(u) => `sección ${u.seccion_electoral_ubic} · casilla ${u.casilla} · ${u.cargo || ''}`}
         />
       )}
     </Box>

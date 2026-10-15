@@ -279,6 +279,13 @@ async function uploadRG(req, res) {
       escritas += filas.length;
     };
 
+    // Cronometro propio para la velocidad: "arranque" incluye resolver el
+    // usuario, validar encabezados y consultar las casas (viajes a la base
+    // antes de leer una sola fila). Si se usa ese tiempo para medir bytes/s,
+    // la primera lectura infla el "tiempo transcurrido" con trabajo que no
+    // es lectura, y la ETA sale mucho mas alta de lo real.
+    const inicioLectura = Date.now();
+
     for await (const f of filasDeHoja(req.file.path, HOJA_RG, {
       maxColumna: 40,
       desdeFila: filaEncabezado + 1,
@@ -343,25 +350,55 @@ async function uploadRG(req, res) {
         await vaciarLote();
         if (Date.now() - ultimoAviso > 400) {
           ultimoAviso = Date.now();
-          const transcurrido = (Date.now() - arranque) / 1000;
+          const transcurrido = (Date.now() - inicioLectura) / 1000;
           const porSegundo = escritas / Math.max(transcurrido, 0.1);
-          const restantes = Math.max((f.totalFilas || 0) - f.nro, 0);
           const avance = f.totalBytes
             ? Math.round((f.bytesLeidos / f.totalBytes) * 95)
             : 0;
+          // El tiempo que falta se calcula con BYTES, no con filas: "escritas"
+          // son solo las filas de tu casa (una fraccion chica del archivo si
+          // tu entidad es pequeña), y comparar eso contra "filas que faltan
+          // LEER del archivo entero" mezclaba dos velocidades distintas -
+          // daba ETAs de varios minutos en cargas que terminaban en segundos.
+          // Con bytes, el % y la ETA miden lo mismo: cuanto queda por leer.
+          //
+          // Ademas: el PRIMER aviso sale contaminado por costos fijos que no
+          // son lectura (abrir la conexion a la base para el primer lote,
+          // arranque del motor). Medido: en una carga real, los primeros
+          // 0.46s leyeron a 2.4 MB/s pero el resto del archivo iba a 26.6
+          // MB/s - 11 veces mas rapido. Proyectar con esa primera muestra da
+          // una ETA absurda. Por eso no se manda ETA hasta pasado 1s desde
+          // que arranco la lectura: antes de eso, el frontend ya sabe mostrar
+          // solo el % y la velocidad, sin inventar un "faltan X" que no vale.
+          let estimatedRemaining = { minutes: 0, seconds: 0 };
+          if (transcurrido > 1) {
+            const bytesPorSegundo = f.bytesLeidos / transcurrido;
+            const bytesRestantes = Math.max((f.totalBytes || 0) - f.bytesLeidos, 0);
+            const segundosRestantes = bytesRestantes / Math.max(bytesPorSegundo, 1);
+            estimatedRemaining = {
+              minutes: Math.floor(segundosRestantes / 60),
+              seconds: Math.round(segundosRestantes % 60),
+            };
+          }
           progressManager.updateProgress({
             progress: Math.min(avance, 95),
             speed: porSegundo.toFixed(2),
-            estimatedRemaining: {
-              minutes: Math.floor(restantes / Math.max(porSegundo, 1) / 60),
-              seconds: Math.round((restantes / Math.max(porSegundo, 1)) % 60),
-            },
+            estimatedRemaining,
           }, usuario.id);
         }
       }
     }
 
     await vaciarLote();
+
+    // Ya se terminó de leer el archivo, pero falta escribir en la tabla
+    // definitiva (contar, insertar, actualizar) - con archivos chicos esto
+    // puede tardar mas que la lectura, y antes no tenia ningun aviso: la
+    // barra se quedaba muda hasta que saltaba directo al cartel final.
+    progressManager.updateProgress(
+      { progress: 96, speed: "0.00", estimatedRemaining: { minutes: 0, seconds: 0 }, fase: "guardando" },
+      usuario.id
+    );
 
     // ---------------------------------------------------------------
     // 2) contar y escribir
@@ -496,7 +533,10 @@ async function uploadRG(req, res) {
     conexion = null;
 
     resumen.segundos = Number(((Date.now() - arranque) / 1000).toFixed(1));
-    progressManager.terminar(usuario.id);
+    progressManager.updateProgress(
+      { progress: 100, speed: "0.00", estimatedRemaining: { minutes: 0, seconds: 0 }, fase: "listo" },
+      usuario.id
+    );
 
     await pool
       .query(

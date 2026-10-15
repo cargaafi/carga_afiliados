@@ -15,6 +15,8 @@ const RDController = require('./Controllers/RDController');
 const RDReporteController = require('./Controllers/RDReporteController');
 const RGController = require('./Controllers/RGController');
 const RGReporteController = require('./Controllers/RGReporteController');
+const RCController = require('./Controllers/RCController');
+const RCReporteController = require('./Controllers/RCReporteController');
 const progressManager = require('./Controllers/Progress');
 //multer
 const upload = multer({ dest: 'uploads/' });
@@ -126,6 +128,13 @@ app.post('/uploadRG', authenticateToken, upload.single('file'), RGController.upl
 app.get('/rgResumen', authenticateToken, RGReporteController.getResumenRG);
 app.get('/rgListado', authenticateToken, RGReporteController.getListadoRG);
 app.get('/rgExportar', authenticateToken, RGReporteController.exportarRG);
+
+// Carga de Responsables de Casilla. Mismo patron que RG; la llave lleva el
+// cargo porque hay 2 responsables por casilla (Propietario 1 y 2).
+app.post('/uploadRC', authenticateToken, upload.single('file'), RCController.uploadRC);
+app.get('/rcResumen', authenticateToken, RCReporteController.getResumenRC);
+app.get('/rcListado', authenticateToken, RCReporteController.getListadoRC);
+app.get('/rcExportar', authenticateToken, RCReporteController.exportarRC);
 
 app.delete('/deleteAfiliado/:id', authenticateToken, PostDataController.deleteField__);
 

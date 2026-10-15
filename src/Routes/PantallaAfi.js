@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Box, Typography } from '@mui/material';
-import { SelectorModulo, EstadoVacio, SLATE } from '../Components/SelectorModulo';
+import { SelectorModulo, SLATE } from '../Components/SelectorModulo';
 import GrillaRD from '../Components/GrillaRD';
 import GrillaRG from '../Components/GrillaRG';
+import GrillaRC from '../Components/GrillaRC';
 
 function PantallaAfi() {
   const [modulo, setModulo] = useState('RD');
@@ -21,9 +22,7 @@ function PantallaAfi() {
 
       {modulo === 'RD' && <GrillaRD />}
       {modulo === 'RG' && <GrillaRG />}
-      {modulo === 'RC' && (
-        <EstadoVacio modulo='RC' accion='Cuando se habilite la carga de RC, el listado aparecerá aquí.' />
-      )}
+      {modulo === 'RC' && <GrillaRC />}
     </Box>
   );
 }

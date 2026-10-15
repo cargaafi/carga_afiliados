@@ -27,6 +27,7 @@ import {
 import CargaExcel from '../Routes/CargaExcel';
 import CargaRD from '../Routes/CargaRD';
 import CargaRG from '../Routes/CargaRG';
+import CargaRC from '../Routes/CargaRC';
 import GridViewIcon from '@mui/icons-material/GridView';
 import PantallaAfi from '../Routes/PantallaAfi';
 const customTheme = createTheme({
@@ -220,6 +221,7 @@ function DemoPageContent({ pathname }) {
       {pathname === '/PantallaAfi' && <PantallaAfi />}
       {pathname === '/CargaRD' && <CargaRD />}
       {pathname === '/CargaRG' && <CargaRG />}
+      {pathname === '/CargaRC' && <CargaRC />}
       {/* Carga de afiliados: oculta del menu, el codigo queda para reactivarla */}
       {pathname === '/CargaExcel' && <CargaExcel />}
       {pathname === '/userConfig' && <UserConfig />}
@@ -305,6 +307,11 @@ function DashboardLayoutPattern() {
           segment: 'CargaRG',
           title: 'Carga RG',
           icon: <IconoSigla>RG</IconoSigla>,
+        },
+        {
+          segment: 'CargaRC',
+          title: 'Carga RC',
+          icon: <IconoSigla>RC</IconoSigla>,
         },
         // Oculta por ahora. Para reactivarla, descomentar: la pantalla sigue entera.
         // {

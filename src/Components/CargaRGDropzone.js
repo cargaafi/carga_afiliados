@@ -37,6 +37,9 @@ export default function CargaRGDropzone() {
         const { data } = await axios.get(`${API_URL}/upload-progress`);
         if (data && typeof data.progress === 'number' && data.progress > 0) {
           setProgreso(data.progress);
+          // el servidor ya terminó de leer y está escribiendo en la base:
+          // antes este tramo quedaba mudo (la barra se congelaba sin avisar)
+          if (data.fase === 'guardando') setFase('Guardando en la base');
           const r = data.estimatedRemaining;
           const falta = r && (r.minutes || r.seconds)
             ? `faltan ${r.minutes ? `${r.minutes} min ` : ''}${r.seconds} s`
@@ -74,6 +77,13 @@ export default function CargaRGDropzone() {
         },
       });
       if (detener) detener();
+      // antes el cartel aparecía de golpe apenas respondía el servidor,
+      // sin importar en qué número se había quedado la barra. Ahora se ve
+      // llegar a 100% y se sostiene un instante antes de abrir el resumen.
+      setFase('Completado');
+      setProgreso(100);
+      setDetalleAvance('');
+      await new Promise((r) => setTimeout(r, 450));
       const nombreArchivoSubido = archivo.name;
       acceptedFiles.length = 0;
       Swal.fire({
@@ -175,7 +185,7 @@ export default function CargaRGDropzone() {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.75 }}>
                 <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>
                   {fase}
-                  {fase === 'Procesando el Excel' ? '…' : ''}
+                  {fase === 'Procesando el Excel' || fase === 'Guardando en la base' ? '…' : ''}
                   {detalleAvance ? ` · ${detalleAvance}` : ''}
                 </Typography>
                 {progreso > 0 && (
