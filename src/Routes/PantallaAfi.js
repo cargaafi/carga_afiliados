@@ -12,7 +12,7 @@ function PantallaAfi() {
     <Box sx={{ p: { xs: 1.5, md: 2 }, maxWidth: 1400, mx: 'auto', width: '100%', minWidth: 0 }}>
       <Box sx={{ textAlign: 'center', mb: 2.5 }}>
         <Typography sx={{ fontSize: 27, fontWeight: 700, color: SLATE, m: 0 }}>
-          Responsables Cargados
+          Registros Cargados
         </Typography>
         <Typography sx={{ fontSize: 14, color: 'text.secondary', mt: 0.5, mb: 2 }}>
           Listado de lo Cargado en el sistema.

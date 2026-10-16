@@ -321,7 +321,7 @@ function DashboardLayoutPattern() {
         // },
         {
           segment: 'PantallaAfi',
-          title: 'Responsables Cargados',
+          title: 'Registros Cargados',
           icon: <GridViewIcon />,
         },
         { kind: 'divider' },

@@ -10,7 +10,7 @@ function Inicio() {
     <Box sx={{ p: { xs: 1.5, md: 2 }, maxWidth: 1400, mx: 'auto', width: '100%', minWidth: 0 }}>
       <Box sx={{ textAlign: 'center', mb: 2.5 }}>
         <Typography sx={{ fontSize: 27, fontWeight: 700, color: SLATE, m: 0 }}>
-          Tablero de Responsables
+          Tablero Informativo
         </Typography>
         <Typography sx={{ fontSize: 14, color: 'text.secondary', mt: 0.5, mb: 2 }}>
           Avance de asignación por módulo
@@ -18,22 +18,16 @@ function Inicio() {
         <SelectorModulo valor={modulo} onChange={setModulo} />
       </Box>
 
-      {modulo === 'RD' && <DashboardModulo endpoint='/rdResumen' unidad='distritos' />}
+      {modulo === 'RD' && <DashboardModulo endpoint='/rdResumen' />}
       {modulo === 'RG' && (
         <DashboardModulo
           endpoint='/rgResumen'
-          unidad='casillas'
-          etiquetaCargados='casillas cargadas'
-          etiquetaAsignados='casillas asignadas'
           ubicacion={(u) => `sección ${u.seccion_electoral_ubic} · casilla ${u.casilla}`}
         />
       )}
       {modulo === 'RC' && (
         <DashboardModulo
           endpoint='/rcResumen'
-          unidad='responsables'
-          etiquetaCargados='responsables cargados'
-          etiquetaAsignados='responsables asignados'
           ubicacion={(u) => `sección ${u.seccion_electoral_ubic} · casilla ${u.casilla} · ${u.cargo || ''}`}
         />
       )}

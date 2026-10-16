@@ -92,18 +92,15 @@ function Barras({ datos, claveNombre, claveValor, maximo, vacio }) {
 }
 
 /**
- * Tablero de un módulo. RD y RG devuelven la misma forma de datos, así que
- * el mismo componente sirve para los dos: solo cambia el endpoint y cómo se
- * llama la unidad (distritos / casillas).
+ * Tablero de un módulo. RD, RG y RC devuelven la misma forma de datos, así
+ * que el mismo componente sirve para los tres: solo cambia el endpoint y
+ * cómo se ubica cada fila en "Últimas cargas" (RD por distrito, RG/RC por
+ * sección y casilla). El texto siempre dice "registros", sin distinguir
+ * distritos/casillas/responsables entre módulos.
  */
 export default function DashboardModulo({
   endpoint,
-  unidad = 'distritos',
-  // la concordancia no se puede derivar de la palabra: 'distritos cargados'
-  // pero 'casillas cargadas'
-  etiquetaCargados = 'distritos cargados',
-  etiquetaAsignados = 'distritos asignados',
-  // cada modulo ubica sus filas distinto: RD por distrito, RG por casilla
+  // cada modulo ubica sus filas distinto: RD por distrito, RG/RC por casilla
   ubicacion = (u) => `distrito ${u.distrito_federal}`,
 }) {
   const [datos, setDatos] = useState(null);
@@ -144,7 +141,7 @@ export default function DashboardModulo({
               <Typography sx={{ fontSize: 30, fontWeight: 700, lineHeight: 1.2 }}>
                 {Number(d.cargados).toLocaleString('es-MX')}{' '}
                 <Typography component='span' sx={{ fontSize: 17, color: 'text.secondary', fontWeight: 500 }}>
-                  {d.nacional ? `de ${Number(d.totalDistritos).toLocaleString('es-MX')} ${unidad}` : etiquetaCargados}
+                  {d.nacional ? `de ${Number(d.totalDistritos).toLocaleString('es-MX')} registros` : 'registros cargados'}
                 </Typography>
               </Typography>
             </Box>
@@ -164,7 +161,7 @@ export default function DashboardModulo({
                 }}
               />
               <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 1 }}>
-                Faltan {Number(d.faltantes).toLocaleString('es-MX')} {unidad} por asignar
+                Faltan {Number(d.faltantes).toLocaleString('es-MX')} registros por asignar
               </Typography>
             </>
           )}
@@ -174,7 +171,7 @@ export default function DashboardModulo({
       {/* KPIs: los totales de 56 casas y 32 entidades solo le dicen algo al
           usuario nacional. Una casa ve la calidad de sus propios datos. */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,minmax(0,1fr))', md: 'repeat(4,minmax(0,1fr))' }, gap: 2, mb: 2 }}>
-        <Kpi icono={<PersonOutlineOutlinedIcon sx={{ fontSize: 18 }} />} label='Responsables cargados' valor={Number(d.cargados).toLocaleString('es-MX')} />
+        <Kpi icono={<PersonOutlineOutlinedIcon sx={{ fontSize: 18 }} />} label='Registros cargados' valor={Number(d.cargados).toLocaleString('es-MX')} />
         {d.nacional ? (
           <>
             <Kpi icono={<HomeWorkOutlinedIcon sx={{ fontSize: 18 }} />} label='Casas que ya cargaron' valor={d.casas} pie='de 56' />
@@ -196,7 +193,7 @@ export default function DashboardModulo({
           <CardContent sx={{ p: '14px 16px !important' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
               <Typography sx={{ fontSize: 13.5, fontWeight: 600 }}>Avance por entidad</Typography>
-              <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{etiquetaAsignados}</Typography>
+              <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>registros asignados</Typography>
             </Box>
             <Barras datos={d.porEntidad} claveNombre='estado' claveValor='cargados' vacio='Sin datos todavía' />
           </CardContent>
