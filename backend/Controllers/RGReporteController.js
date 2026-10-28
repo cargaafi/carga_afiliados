@@ -1,7 +1,8 @@
 // Reportes de Responsables Generales.
 //
-// Mismo alcance que RD: cada casa ve solo su entidad, el usuario nacional ve
-// todo. El filtro sale del token, nunca de algo que mande el navegador.
+// Mismo alcance que RD: cada casa ve SOLO lo que subio ella, aislada incluso
+// de otras casas de su misma entidad. El usuario nacional ve todo. El filtro
+// sale del token, nunca de algo que mande el navegador.
 //
 // Diferencia con RD: el listado va paginado del lado del servidor. En RD son
 // 300 filas y se mandan todas; aca una casa puede tener 21 mil y el nacional
@@ -21,14 +22,17 @@ async function alcanceDe(req) {
   if (usuario.nacional) {
     return { nacional: true, where: "", params: [], entidad: "Todas" };
   }
-  if (!usuario.entidad_norm) {
+  if (!usuario.entidad_norm || usuario.casa === null) {
     // usuario sin casa asociada: no ve nada, en vez de ver todo
     return { nacional: false, where: "WHERE 1 = 0", params: [], entidad: null };
   }
+  // Excepcion: lo que subio el nacional (casa_carga queda NULL) se muestra
+  // igual a la casa de esa entidad, para que una correccion del nacional no
+  // quede invisible para todos.
   return {
     nacional: false,
-    where: "WHERE estado_norm = ?",
-    params: [usuario.entidad_norm],
+    where: "WHERE (casa_carga = ? OR (casa_carga IS NULL AND estado_norm = ?))",
+    params: [String(usuario.casa), usuario.entidad_norm],
     entidad: usuario.entidad,
     casa: usuario.casa,
   };

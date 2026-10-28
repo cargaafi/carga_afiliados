@@ -13,22 +13,30 @@ const TOTAL_DISTRITOS = 300;
 // El año en curso: una credencial vale hasta el final del año que indica.
 const vigenciaMinima = () => new Date().getFullYear();
 
-// Cada casa ve solo su entidad; el usuario nacional ve el pais entero. Se
-// resuelve desde el token, nunca desde algo que mande el navegador.
+// Cada casa ve SOLO lo que subió ella (aislado incluso de otras casas de su
+// misma entidad: CDMX tiene 5, Estado de México 2, etc. - antes compartian
+// vista por entidad y dos casas distintas se veian entre si). El usuario
+// nacional sigue viendo el pais entero. Se resuelve desde el token, nunca
+// desde algo que mande el navegador.
+//
+// Excepcion: las filas que subio el propio usuario nacional (casa_carga
+// queda NULL, el admin no tiene numero de casa) se muestran igual a la casa
+// de esa entidad, porque si no una correccion del nacional quedaria
+// invisible para todos - nadie la veria nunca.
 async function alcanceDe(req) {
   const usuario = await resolverUsuario(req.user && req.user.id);
   if (!usuario) return null;
   if (usuario.nacional) {
     return { nacional: true, where: "", params: [], entidad: "Todas" };
   }
-  if (!usuario.entidad_norm) {
+  if (!usuario.entidad_norm || usuario.casa === null) {
     // usuario sin casa asociada: no ve nada, en vez de ver todo
     return { nacional: false, where: "WHERE 1 = 0", params: [], entidad: null };
   }
   return {
     nacional: false,
-    where: "WHERE estado_norm = ?",
-    params: [usuario.entidad_norm],
+    where: "WHERE (casa_carga = ? OR (casa_carga IS NULL AND estado_norm = ?))",
+    params: [String(usuario.casa), usuario.entidad_norm],
     entidad: usuario.entidad,
     casa: usuario.casa,
   };
