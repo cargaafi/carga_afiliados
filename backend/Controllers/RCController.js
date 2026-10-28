@@ -240,8 +240,14 @@ async function uploadRC(req, res) {
       actualizados: 0,
       reemplazados: 0,
       sinCambios: 0,
-      descartados: { claveInvalida: 0, sinCasilla: 0, otroEstado: 0, repetidaEnArchivo: 0 },
-      avisos: { vigencia: 0, vigenciaVencida: 0, sexo: 0, telefono: 0, correo: 0 },
+      descartados: {
+        claveInvalida: 0,
+        sinCasilla: 0,
+        otroEstado: 0,
+        repetidaEnArchivo: 0,
+        datosIncompletos: 0,
+      },
+      avisos: { sexo: 0, correo: 0 },
       entidadUsuario: usuario.nacional ? "Todas" : usuario.entidad,
       detalle: [],
       avisosDetalle: [],
@@ -335,6 +341,17 @@ async function uploadRC(req, res) {
       if (!V.claveElectorValida(d.clave_elector)) {
         resumen.descartados.claveInvalida++;
         agregarDetalle(nro, V.motivoClaveInvalida(d.clave_elector));
+        continue;
+      }
+
+      // vigencia de INE, telefono, codigo postal y origen son obligatorios en
+      // RC: si falta alguno, o el telefono no son 10 digitos numericos, la
+      // fila no se sube. Origen es exclusivo de RC, por eso se suma aca.
+      const motivosDatos = V.motivosDescarteDatos(d);
+      if (!d.origen) motivosDatos.push({ tipo: "origen", texto: "sin origen" });
+      if (motivosDatos.length) {
+        resumen.descartados.datosIncompletos++;
+        agregarDetalle(nro, motivosDatos.map((m) => m.texto).join(" · "));
         continue;
       }
 

@@ -124,6 +124,46 @@ function correoValido(correo) {
   return correo.indexOf(".", at) > at + 1;
 }
 
+// Vigencia, teléfono y código postal son obligatorios: si faltan o son
+// inválidos la fila NO se sube (antes eran solo un aviso). El motivo vuelve
+// en castellano para explicarlo en el detalle de descartados del resumen.
+function motivoVigenciaInvalida(d) {
+  const anio = d.vigencia_ine;
+  if (anio === null)
+    return d.vigencia_cruda
+      ? `no se entiende la vigencia de la INE ("${d.vigencia_cruda}")`
+      : "sin vigencia de INE";
+  if (anio < vigenciaMinima()) return `INE vencida (vigencia ${anio})`;
+  return null;
+}
+
+function motivoTelefonoInvalido(telefono) {
+  if (!telefono) return "sin teléfono";
+  if (!/^\d+$/.test(telefono))
+    return `el teléfono tiene letras o símbolos (${telefono})`;
+  if (telefono.length !== 10)
+    return `el teléfono tiene ${telefono.length} dígitos y deben ser 10 (${telefono})`;
+  return null;
+}
+
+function motivoCodigoPostalInvalido(cp) {
+  if (!cp) return "sin código postal";
+  return null;
+}
+
+// Junta los tres motivos de descarte compartidos por RD, RG y RC. Cada
+// controller le suma el suyo si corresponde (ej. RC con "origen").
+function motivosDescarteDatos(d) {
+  const motivos = [];
+  const vigencia = motivoVigenciaInvalida(d);
+  if (vigencia) motivos.push({ tipo: "vigencia", texto: vigencia });
+  const telefono = motivoTelefonoInvalido(d.telefono);
+  if (telefono) motivos.push({ tipo: "telefono", texto: telefono });
+  const cp = motivoCodigoPostalInvalido(d.codigo_postal);
+  if (cp) motivos.push({ tipo: "codigoPostal", texto: cp });
+  return motivos;
+}
+
 // Columnas N..AC: datos de la persona. Identicas en RD, RG y RC.
 const COLUMNAS_PERSONA = [
   "apellido_paterno",
@@ -199,23 +239,12 @@ function filaSinResponsable(d) {
 }
 
 // Avisos: no frenan la carga, pero se reportan con el numero de fila para que
-// se sepa cual corregir.
+// se sepa cual corregir. Vigencia, telefono y codigo postal ya NO van aca:
+// pasaron a ser obligatorios y se descartan en motivosDescarteDatos().
 function motivosAviso(d) {
   const motivos = [];
-  const anio = d.vigencia_ine;
-  if (anio !== null && anio < vigenciaMinima())
-    motivos.push({ tipo: "vigenciaVencida", texto: `INE vencida (vigencia ${anio})` });
-  if (anio === null)
-    motivos.push({
-      tipo: "vigencia",
-      texto: d.vigencia_cruda
-        ? `no se entiende la vigencia de la INE ("${d.vigencia_cruda}")`
-        : "sin vigencia de INE",
-    });
   if (d.sexo && !["HOMBRE", "MUJER"].includes(norm(d.sexo)))
     motivos.push({ tipo: "sexo", texto: `sexo "${d.sexo}" no es Hombre ni Mujer` });
-  if (d.telefono && !/^\d{10}$/.test(d.telefono))
-    motivos.push({ tipo: "telefono", texto: `teléfono inválido (${d.telefono})` });
   if (d.correo && !correoValido(d.correo))
     motivos.push({ tipo: "correo", texto: `correo inválido (${d.correo})` });
   return motivos;
@@ -297,6 +326,10 @@ module.exports = {
   claveElectorValida,
   motivoClaveInvalida,
   correoValido,
+  motivoVigenciaInvalida,
+  motivoTelefonoInvalido,
+  motivoCodigoPostalInvalido,
+  motivosDescarteDatos,
   COLUMNAS_PERSONA,
   NOMBRE_CAMPO,
   mapearPersona,

@@ -379,8 +379,8 @@ async function uploadRD(req, res) {
       reemplazados: 0,
       sinCambios: 0,
       sinResponsable: 0,
-      descartados: { claveInvalida: 0, sinDistrito: 0, otroEstado: 0 },
-      avisos: { vigencia: 0, vigenciaVencida: 0, sexo: 0, telefono: 0, correo: 0 },
+      descartados: { claveInvalida: 0, sinDistrito: 0, otroEstado: 0, datosIncompletos: 0 },
+      avisos: { sexo: 0, correo: 0 },
       entidadUsuario: usuario.nacional ? "Todas" : usuario.entidad,
       detalle: [],
       avisosDetalle: [],
@@ -480,30 +480,40 @@ async function uploadRD(req, res) {
         continue;
       }
 
-      // avisos: no frenan la carga. La INE vencida se reporta pero el registro
-      // se crea igual: el responsable existe aunque tenga que renovar. Ademas
-      // del contador se guarda la fila, para que se sepa cual corregir.
+      // vigencia de INE, telefono y codigo postal son obligatorios: si falta
+      // alguno, o el telefono no son 10 digitos numericos, la fila no se sube.
       const anio = d.vigencia_ine;
-      const motivosAviso = [];
-      if (anio !== null && anio < vigenciaMinima()) {
-        resumen.avisos.vigenciaVencida++;
-        motivosAviso.push(`INE vencida (vigencia ${anio})`);
-      }
+      const motivosDatos = [];
       if (anio === null) {
-        resumen.avisos.vigencia++;
-        motivosAviso.push(
+        motivosDatos.push(
           d.vigencia_cruda
             ? `no se entiende la vigencia de la INE ("${d.vigencia_cruda}")`
             : "sin vigencia de INE"
         );
+      } else if (anio < vigenciaMinima()) {
+        motivosDatos.push(`INE vencida (vigencia ${anio})`);
       }
+      if (!d.telefono) {
+        motivosDatos.push("sin teléfono");
+      } else if (!/^\d+$/.test(d.telefono)) {
+        motivosDatos.push(`el teléfono tiene letras o símbolos (${d.telefono})`);
+      } else if (d.telefono.length !== 10) {
+        motivosDatos.push(
+          `el teléfono tiene ${d.telefono.length} dígitos y deben ser 10 (${d.telefono})`
+        );
+      }
+      if (!d.codigo_postal) motivosDatos.push("sin código postal");
+      if (motivosDatos.length) {
+        resumen.descartados.datosIncompletos++;
+        agregarDetalle(fila, motivosDatos.join(" · "));
+        continue;
+      }
+
+      // avisos: no frenan la carga, pero conviene corregirlos.
+      const motivosAviso = [];
       if (d.sexo && !["HOMBRE", "MUJER"].includes(norm(d.sexo))) {
         resumen.avisos.sexo++;
         motivosAviso.push(`sexo "${d.sexo}" no es Hombre ni Mujer`);
-      }
-      if (d.telefono && !/^\d{10}$/.test(d.telefono)) {
-        resumen.avisos.telefono++;
-        motivosAviso.push(`teléfono inválido (${d.telefono})`);
       }
       if (d.correo && !correoValido(d.correo)) {
         resumen.avisos.correo++;

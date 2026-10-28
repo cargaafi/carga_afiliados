@@ -59,13 +59,15 @@ export function armarResumenHtml(r) {
   }
 
   // --- no se cargaron ---
-  const errores = (d.claveInvalida || 0) + (d.sinDistrito || 0) + (d.sinCasilla || 0) + (d.repetidaEnArchivo || 0);
+  const errores = (d.claveInvalida || 0) + (d.sinDistrito || 0) + (d.sinCasilla || 0) +
+    (d.repetidaEnArchivo || 0) + (d.datosIncompletos || 0);
   const noCargados = errores + (d.otroEstado || 0);
   if (noCargados) {
     html += encabezadoGrupo('No se cargaron', noCargados, '#c62828');
     if (d.claveInvalida) html += fila('❌', '#c62828', 'problema con la clave de elector', d.claveInvalida);
     if (d.sinDistrito) html += fila('❌', '#c62828', 'sin estado o sin distrito', d.sinDistrito);
     if (d.sinCasilla) html += fila('❌', '#c62828', 'sin estado, sección o casilla', d.sinCasilla);
+    if (d.datosIncompletos) html += fila('❌', '#c62828', 'falta vigencia, teléfono, código postal u origen', d.datosIncompletos);
     if (d.repetidaEnArchivo) html += fila('🔁', '#ef6c00', 'repetidas en el archivo (se tomó la última)', d.repetidaEnArchivo);
     if (d.otroEstado) html += fila('🚫', '#ef6c00', 'corresponden a otras casas', d.otroEstado);
   }
@@ -75,9 +77,6 @@ export function armarResumenHtml(r) {
 
   // --- avisos: NO suman, son un subconjunto de los cargados ---
   const avisos = [];
-  if (a.vigenciaVencida) avisos.push(`${n(a.vigenciaVencida)} con INE vencida`);
-  if (a.vigencia) avisos.push(`${n(a.vigencia)} sin vigencia de INE`);
-  if (a.telefono) avisos.push(`${n(a.telefono)} con teléfono inválido`);
   if (a.correo) avisos.push(`${n(a.correo)} con correo inválido`);
   if (a.sexo) avisos.push(`${n(a.sexo)} con sexo distinto de Hombre/Mujer`);
   if (avisos.length) {

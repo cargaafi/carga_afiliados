@@ -45,24 +45,24 @@ export function armarTexto({ modulo, resumen: r, usuario, archivo, fecha = new D
   L.push(linea('Sin cambios', r.sinCambios || 0));
 
   const noCargados =
-    (d.claveInvalida || 0) + (d.sinDistrito || 0) + (d.sinCasilla || 0) + (d.otroEstado || 0);
+    (d.claveInvalida || 0) + (d.sinDistrito || 0) + (d.sinCasilla || 0) +
+    (d.otroEstado || 0) + (d.datosIncompletos || 0);
   if (noCargados || d.repetidaEnArchivo) {
     L.push(titulo('NO SE CARGARON'));
     if (d.claveInvalida) L.push(linea('Problema con la clave de elector', d.claveInvalida));
     if (d.sinDistrito) L.push(linea('Sin estado o sin distrito', d.sinDistrito));
     if (d.sinCasilla) L.push(linea('Sin estado, sección o casilla', d.sinCasilla));
+    if (d.datosIncompletos)
+      L.push(linea('Falta vigencia, teléfono, código postal u origen', d.datosIncompletos));
     if (d.otroEstado) L.push(linea('Corresponden a otras casas', d.otroEstado));
     if (d.repetidaEnArchivo)
       L.push(linea('Repetidas en el archivo (gana la última)', d.repetidaEnArchivo));
   }
 
-  const hayAvisos = a.vigenciaVencida || a.vigencia || a.sexo || a.telefono || a.correo;
+  const hayAvisos = a.sexo || a.correo;
   if (hayAvisos) {
     L.push(titulo('SE CARGARON IGUAL, PERO CONVIENE REVISAR'));
-    if (a.vigenciaVencida) L.push(linea('INE vencida', a.vigenciaVencida));
-    if (a.vigencia) L.push(linea('Sin vigencia de INE', a.vigencia));
     if (a.sexo) L.push(linea('Sexo distinto de Hombre/Mujer', a.sexo));
-    if (a.telefono) L.push(linea('Teléfono inválido', a.telefono));
     if (a.correo) L.push(linea('Correo inválido', a.correo));
   }
 
@@ -83,7 +83,8 @@ export function armarTexto({ modulo, resumen: r, usuario, archivo, fecha = new D
   bloque(
     'DETALLE DE LO QUE NO SE CARGÓ',
     errores,
-    (d.claveInvalida || 0) + (d.sinDistrito || 0) + (d.sinCasilla || 0) + (d.repetidaEnArchivo || 0),
+    (d.claveInvalida || 0) + (d.sinDistrito || 0) + (d.sinCasilla || 0) +
+      (d.repetidaEnArchivo || 0) + (d.datosIncompletos || 0),
     (x) => `Fila ${x.fila}: ${x.motivo}`
   );
 
