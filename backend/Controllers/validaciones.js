@@ -95,26 +95,15 @@ function anioVigencia(valor) {
 
 // ---------------------------------------------------------------- persona
 
-// Regla del propio Excel: 18 caracteres, sin espacios y posiciones 7-12
-// numericas (la fecha de nacimiento). Ademas rechazamos la clave toda
-// numerica: una clave real arranca con 6 letras, y si se tipea como numero
-// Excel la guarda como float y le cambia los ultimos digitos.
+// Unica regla: 18 caracteres. Sin chequeo de posiciones.
 function claveElectorValida(clave) {
-  if (!clave || clave.length !== 18) return false;
-  if (/\s/.test(clave)) return false;
-  if (/^\d+$/.test(clave)) return false;
-  return /^\d{6}$/.test(clave.slice(6, 12));
+  return !!clave && clave.length === 18;
 }
 
 // El motivo en castellano, para que el usuario sepa que corregir.
 function motivoClaveInvalida(clave) {
   if (!clave) return "sin clave de elector";
-  if (/^\d+$/.test(clave))
-    return `clave numérica (${clave}) — se capturó como número y Excel le cambia los últimos dígitos`;
-  if (/\s/.test(clave)) return `la clave tiene espacios en blanco (${clave})`;
-  if (clave.length !== 18)
-    return `la clave tiene ${clave.length} caracteres y deben ser 18 (${clave})`;
-  return `clave inválida: las posiciones 7 a 12 tienen que ser la fecha de nacimiento en números (${clave})`;
+  return `la clave tiene ${clave.length} caracteres y deben ser 18 (${clave})`;
 }
 
 function correoValido(correo) {

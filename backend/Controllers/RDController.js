@@ -123,16 +123,9 @@ function padNum(valor, largo) {
   return /^\d+$/.test(s) ? s.padStart(largo, "0") : s;
 }
 
-// Regla del propio Excel: 18 caracteres, sin espacios y posiciones 7-12
-// numericas (la fecha de nacimiento).
-// Ademas rechazamos la clave toda numerica: una clave real arranca con 6
-// letras, y si se tipea como numero Excel la guarda como float y le cambia
-// los ultimos digitos (123456789012345678 -> 123456789012345680).
+// Unica regla: 18 caracteres. Sin chequeo de posiciones.
 function claveElectorValida(clave) {
-  if (clave.length !== 18) return false;
-  if (/\s/.test(clave)) return false;
-  if (/^\d+$/.test(clave)) return false;
-  return /^\d{6}$/.test(clave.slice(6, 12));
+  return !!clave && clave.length === 18;
 }
 
 // Una fila de la plantilla que nadie lleno todavia: no es un error, solo no
@@ -372,6 +365,21 @@ async function uploadRD(req, res) {
     }
     for (const lista of casasPorEntidad.values()) lista.sort((a, b) => a - b);
 
+    // Clave de elector unica en toda la tabla: una persona no puede ser
+    // responsable de dos distritos a la vez. Se precarga que clave esta en
+    // que distrito (de la base y de lo que se va aceptando de este mismo
+    // archivo), para rechazar sin pisar nada.
+    const [clavesExistentes] = await pool.query(
+      "SELECT clave_elector, estado_norm, distrito_federal FROM RD"
+    );
+    const claveAUbicacion = new Map();
+    for (const c of clavesExistentes) {
+      claveAUbicacion.set(c.clave_elector, {
+        key: `${c.estado_norm}|${c.distrito_federal}`,
+        texto: `el distrito ${c.distrito_federal} (${c.estado_norm})`,
+      });
+    }
+
     const resumen = {
       filasLeidas: filas.length,
       nuevos: 0,
@@ -379,7 +387,13 @@ async function uploadRD(req, res) {
       reemplazados: 0,
       sinCambios: 0,
       sinResponsable: 0,
-      descartados: { claveInvalida: 0, sinDistrito: 0, otroEstado: 0, datosIncompletos: 0 },
+      descartados: {
+        claveInvalida: 0,
+        sinDistrito: 0,
+        otroEstado: 0,
+        datosIncompletos: 0,
+        claveRepetida: 0,
+      },
       avisos: { sexo: 0, correo: 0 },
       entidadUsuario: usuario.nacional ? "Todas" : usuario.entidad,
       detalle: [],
@@ -463,22 +477,31 @@ async function uploadRD(req, res) {
 
       if (!claveElectorValida(d.clave_elector)) {
         const clave = d.clave_elector;
-        let motivo;
-        if (!clave) {
-          motivo = "sin clave de elector";
-        } else if (/^\d+$/.test(clave)) {
-          motivo = `clave numérica (${clave}) — se capturó como número y Excel le cambia los últimos dígitos`;
-        } else if (/\s/.test(clave)) {
-          motivo = `la clave tiene espacios en blanco (${clave})`;
-        } else if (clave.length !== 18) {
-          motivo = `la clave tiene ${clave.length} caracteres y deben ser 18 (${clave})`;
-        } else {
-          motivo = `clave inválida: las posiciones 7 a 12 tienen que ser la fecha de nacimiento en números (${clave})`;
-        }
+        const motivo = !clave
+          ? "sin clave de elector"
+          : `la clave tiene ${clave.length} caracteres y deben ser 18 (${clave})`;
         resumen.descartados.claveInvalida++;
         agregarDetalle(fila, motivo);
         continue;
       }
+
+      // clave de elector repetida: esa persona ya es responsable de OTRO
+      // distrito (en la base, o en una fila anterior de este mismo archivo).
+      // No se mueve de lugar sola: se rechaza y se corrige a mano.
+      const miUbicacionRD = `${d.estado_norm}|${d.distrito_federal}`;
+      const ubicacionPrevia = claveAUbicacion.get(d.clave_elector);
+      if (ubicacionPrevia && ubicacionPrevia.key !== miUbicacionRD) {
+        resumen.descartados.claveRepetida++;
+        agregarDetalle(
+          fila,
+          `la clave ${d.clave_elector} ya está asignada a ${ubicacionPrevia.texto}`
+        );
+        continue;
+      }
+      claveAUbicacion.set(d.clave_elector, {
+        key: miUbicacionRD,
+        texto: `el distrito ${d.distrito_federal} (${d.estado_norm})`,
+      });
 
       // vigencia de INE, telefono y codigo postal son obligatorios: si falta
       // alguno, o el telefono no son 10 digitos numericos, la fila no se sube.
@@ -527,6 +550,25 @@ async function uploadRD(req, res) {
       );
 
       if (!existentes.length) {
+        // Red de seguridad contra una carrera entre 2 cargas simultaneas: el
+        // chequeo de arriba corre contra una FOTO de la base tomada al
+        // empezar. Si OTRA carga confirmo esa misma clave en otro distrito
+        // mientras esta se procesaba, este INSERT chocaria contra el UNIQUE
+        // KEY y tiraria abajo TODA la transaccion (las 149 filas anteriores
+        // incluidas). Se re-chequea contra el estado actual justo antes.
+        const [chequeoVivo] = await conexion.query(
+          "SELECT estado_norm, distrito_federal FROM RD WHERE clave_elector = ? LIMIT 1",
+          [d.clave_elector]
+        );
+        if (chequeoVivo.length) {
+          resumen.descartados.claveRepetida++;
+          agregarDetalle(
+            fila,
+            `la clave ${d.clave_elector} ya está asignada a el distrito ${chequeoVivo[0].distrito_federal} (${chequeoVivo[0].estado_norm})`
+          );
+          continue;
+        }
+
         const columnas = [...COLUMNAS_INE, ...COLUMNAS_PERSONA, "casa_carga", "usuario_subida"];
         const valores = columnas.map((col) => {
           if (col === "casa_carga") return usuario.casa;

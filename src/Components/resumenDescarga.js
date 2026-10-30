@@ -46,10 +46,11 @@ export function armarTexto({ modulo, resumen: r, usuario, archivo, fecha = new D
 
   const noCargados =
     (d.claveInvalida || 0) + (d.sinDistrito || 0) + (d.sinCasilla || 0) +
-    (d.otroEstado || 0) + (d.datosIncompletos || 0);
+    (d.otroEstado || 0) + (d.datosIncompletos || 0) + (d.claveRepetida || 0);
   if (noCargados || d.repetidaEnArchivo) {
     L.push(titulo('NO SE CARGARON'));
     if (d.claveInvalida) L.push(linea('Problema con la clave de elector', d.claveInvalida));
+    if (d.claveRepetida) L.push(linea('Clave ya asignada a otro lugar', d.claveRepetida));
     if (d.sinDistrito) L.push(linea('Sin estado o sin distrito', d.sinDistrito));
     if (d.sinCasilla) L.push(linea('Sin estado, sección o casilla', d.sinCasilla));
     if (d.datosIncompletos)
@@ -84,7 +85,7 @@ export function armarTexto({ modulo, resumen: r, usuario, archivo, fecha = new D
     'DETALLE DE LO QUE NO SE CARGÓ',
     errores,
     (d.claveInvalida || 0) + (d.sinDistrito || 0) + (d.sinCasilla || 0) +
-      (d.repetidaEnArchivo || 0) + (d.datosIncompletos || 0),
+      (d.repetidaEnArchivo || 0) + (d.datosIncompletos || 0) + (d.claveRepetida || 0),
     (x) => `Fila ${x.fila}: ${x.motivo}`
   );
 

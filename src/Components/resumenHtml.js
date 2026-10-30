@@ -60,11 +60,12 @@ export function armarResumenHtml(r) {
 
   // --- no se cargaron ---
   const errores = (d.claveInvalida || 0) + (d.sinDistrito || 0) + (d.sinCasilla || 0) +
-    (d.repetidaEnArchivo || 0) + (d.datosIncompletos || 0);
+    (d.repetidaEnArchivo || 0) + (d.datosIncompletos || 0) + (d.claveRepetida || 0);
   const noCargados = errores + (d.otroEstado || 0);
   if (noCargados) {
     html += encabezadoGrupo('No se cargaron', noCargados, '#c62828');
     if (d.claveInvalida) html += fila('❌', '#c62828', 'problema con la clave de elector', d.claveInvalida);
+    if (d.claveRepetida) html += fila('❌', '#c62828', 'clave de elector ya asignada a otro lugar', d.claveRepetida);
     if (d.sinDistrito) html += fila('❌', '#c62828', 'sin estado o sin distrito', d.sinDistrito);
     if (d.sinCasilla) html += fila('❌', '#c62828', 'sin estado, sección o casilla', d.sinCasilla);
     if (d.datosIncompletos) html += fila('❌', '#c62828', 'falta vigencia, teléfono, código postal u origen', d.datosIncompletos);

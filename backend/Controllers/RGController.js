@@ -218,6 +218,21 @@ async function uploadRG(req, res) {
     const filaEncabezado = await filaDeEncabezado(req.file.path);
     const mapaCasas = await V.casasPorEntidad();
 
+    // Clave de elector unica en toda la tabla: una persona no puede ser
+    // responsable de dos casillas a la vez. Se precarga que clave esta en
+    // que casilla (de la base y de lo que se va aceptando de este mismo
+    // archivo), para rechazar sin pisar nada.
+    const [clavesExistentesRG] = await pool.query(
+      "SELECT clave_elector, estado_norm, seccion_electoral_ubic, tipo_casilla, casilla FROM RG"
+    );
+    const claveAUbicacion = new Map();
+    for (const c of clavesExistentesRG) {
+      claveAUbicacion.set(c.clave_elector, {
+        key: `${c.estado_norm}|${c.seccion_electoral_ubic}|${c.tipo_casilla}|${c.casilla}`,
+        texto: `la sección ${c.seccion_electoral_ubic}, casilla ${c.casilla} (${c.estado_norm})`,
+      });
+    }
+
     const resumen = {
       filasLeidas: 0,
       sinResponsable: 0,
@@ -231,6 +246,7 @@ async function uploadRG(req, res) {
         otroEstado: 0,
         repetidaEnArchivo: 0,
         datosIncompletos: 0,
+        claveRepetida: 0,
       },
       avisos: { sexo: 0, correo: 0 },
       entidadUsuario: usuario.nacional ? "Todas" : usuario.entidad,
@@ -327,6 +343,24 @@ async function uploadRG(req, res) {
         agregarDetalle(nro, V.motivoClaveInvalida(d.clave_elector));
         continue;
       }
+
+      // clave de elector repetida: esa persona ya es responsable de OTRA
+      // casilla (en la base, o en una fila anterior de este mismo archivo).
+      // No se mueve de lugar sola: se rechaza y se corrige a mano.
+      const miUbicacionRG = `${d.estado_norm}|${d.seccion_electoral_ubic}|${d.tipo_casilla}|${d.casilla}`;
+      const ubicacionPreviaRG = claveAUbicacion.get(d.clave_elector);
+      if (ubicacionPreviaRG && ubicacionPreviaRG.key !== miUbicacionRG) {
+        resumen.descartados.claveRepetida++;
+        agregarDetalle(
+          nro,
+          `la clave ${d.clave_elector} ya está asignada a ${ubicacionPreviaRG.texto}`
+        );
+        continue;
+      }
+      claveAUbicacion.set(d.clave_elector, {
+        key: miUbicacionRG,
+        texto: `la sección ${d.seccion_electoral_ubic}, casilla ${d.casilla} (${d.estado_norm})`,
+      });
 
       // vigencia de INE, telefono y codigo postal son obligatorios: si falta
       // alguno, o el telefono no son 10 digitos numericos, la fila no se sube.
@@ -445,6 +479,43 @@ async function uploadRG(req, res) {
             AND nueva.casilla = vieja.casilla
             AND nueva.fila_excel > vieja.fila_excel
          WHERE vieja.carga_id = ?`,
+        [cargaId]
+      );
+    }
+
+    // Red de seguridad contra una carrera entre 2 cargas simultaneas: el
+    // chequeo de "clave repetida" de la lectura corre contra una FOTO de la
+    // base tomada al empezar a leer el archivo. Si OTRA carga, al mismo
+    // tiempo, confirmo esa misma clave en otro lugar mientras esta leia, el
+    // INSERT de abajo chocaria contra el UNIQUE KEY y tiraria abajo TODO el
+    // archivo. Por eso se re-chequea contra el estado actual justo antes de
+    // escribir, y se descarta solo esa fila (rarisimo, pero el archivo
+    // entero no puede depender de que nunca pase).
+    const [choquesClave] = await pool.query(
+      `SELECT t.fila_excel, r.seccion_electoral_ubic AS seccion_ya, r.casilla AS casilla_ya, r.estado_norm AS estado_ya
+       FROM temp_RG t
+       JOIN RG r ON r.clave_elector = t.clave_elector
+       WHERE t.carga_id = ? AND NOT (
+         r.estado_norm = t.estado_norm AND r.seccion_electoral_ubic = t.seccion_electoral_ubic
+         AND r.tipo_casilla = t.tipo_casilla AND r.casilla = t.casilla
+       )`,
+      [cargaId]
+    );
+    if (choquesClave.length) {
+      for (const c of choquesClave) {
+        resumen.descartados.claveRepetida++;
+        agregarDetalle(
+          c.fila_excel,
+          `la clave ya está asignada a la sección ${c.seccion_ya}, casilla ${c.casilla_ya} (${c.estado_ya})`
+        );
+      }
+      await pool.query(
+        `DELETE t FROM temp_RG t
+         JOIN RG r ON r.clave_elector = t.clave_elector
+         WHERE t.carga_id = ? AND NOT (
+           r.estado_norm = t.estado_norm AND r.seccion_electoral_ubic = t.seccion_electoral_ubic
+           AND r.tipo_casilla = t.tipo_casilla AND r.casilla = t.casilla
+         )`,
         [cargaId]
       );
     }
