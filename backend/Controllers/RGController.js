@@ -1,13 +1,4 @@
-// Carga de Responsables Generales (RG).
-//
-// Mismas reglas que RD (ver validaciones.js), pero con otro volumen: la
-// plantilla trae 173.396 filas en vez de 300. Por eso cambia la mecanica:
-//
-//   RD  -> un SELECT por fila. Con 300 filas son 300 viajes a la base: va bien.
-//   RG  -> eso serian 173 mil viajes. Aca va a tabla de paso + 2 sentencias.
-//
-// El filtro por casa corre ANTES de tocar la base: si la casa 14 sube el
-// archivo completo, de las 173k solo se escriben las ~5 mil de su entidad.
+// Carga de Responsables Generales (RG): mismas reglas que RD, pero con tabla de paso + lotes por el volumen (173.396 filas).
 const fs = require("fs");
 const crypto = require("crypto");
 const V = require("./validaciones");
@@ -17,11 +8,7 @@ const progressManager = require("./Progress");
 const pool = V.pool;
 const HOJA_RG = "RG";
 
-// Encabezados esperados de la hoja RG, en su posicion exacta, tal como vienen
-// en la plantilla. Se comparan LOS 29, no unos pocos: si alguien intercambia
-// dos columnas que no fueran ancla (por ejemplo Cabecera y Municipio) los
-// datos entrarian cruzados sin que nadie se entere, y eso es peor que
-// rechazar el archivo.
+// Encabezados esperados de la hoja RG en su posicion exacta; se comparan los 29 para no dejar pasar columnas cruzadas.
 const ENCABEZADOS_RG = [
   "SECCION ELECTORAL",
   "TIPO DE SECCION",
@@ -65,8 +52,7 @@ function letraColumna(n) {
   return s;
 }
 
-// Devuelve null si la fila es el encabezado correcto, o el texto del primer
-// problema encontrado.
+// Devuelve null si el encabezado es correcto, o el texto del primer problema encontrado.
 function problemaDeFirma(valores) {
   for (let i = 0; i < ENCABEZADOS_RG.length; i++) {
     const col = i + 1;
@@ -82,9 +68,7 @@ function problemaDeFirma(valores) {
   return null;
 }
 
-// Una fila "con responsable" tiene alguna celda de la N (14) en adelante.
-// La plantilla las trae creadas pero vacias y autocerradas (<c r="N4" s="6"/>),
-// por eso se exige que la etiqueta NO termine en "/>".
+// Una fila "con responsable" tiene alguna celda de la N en adelante sin autocerrar (<c .../> = vacia).
 const TIENE_PERSONA = /<c r="(?:N|O|P|Q|R|S|T|U|V|W|X|Y|Z|AA|AB|AC|AD)\d+"[^>]*[^/]>/;
 
 const MAX_FILAS_ENCABEZADO = 8;
@@ -155,9 +139,7 @@ function errorDeArchivo(mensaje) {
   return e;
 }
 
-// Devuelve en que fila esta el encabezado, para empezar a leer datos recien
-// despues. Importante: la fila de encabezados dice "Apellido Paterno" en la N,
-// asi que pasa el filtro rapido y hay que saltearla por numero de fila.
+// Devuelve en que fila esta el encabezado, para empezar a leer datos recien despues.
 async function filaDeEncabezado(ruta) {
   const hojas = await nombresDeHojas(ruta);
   if (!hojas.includes(HOJA_RG)) {
@@ -167,8 +149,7 @@ async function filaDeEncabezado(ruta) {
     );
   }
   let fila = 0;
-  // del candidato que mas se acerco guardamos el problema, para poder decir
-  // exactamente que columna esta mal en vez de un error generico
+  // Guarda el problema del candidato mas cercano, para dar un mensaje especifico en vez de uno generico.
   let mejorProblema = null;
   await recorrerHoja(
     ruta,
@@ -218,21 +199,6 @@ async function uploadRG(req, res) {
     const filaEncabezado = await filaDeEncabezado(req.file.path);
     const mapaCasas = await V.casasPorEntidad();
 
-    // Clave de elector unica en toda la tabla: una persona no puede ser
-    // responsable de dos casillas a la vez. Se precarga que clave esta en
-    // que casilla (de la base y de lo que se va aceptando de este mismo
-    // archivo), para rechazar sin pisar nada.
-    const [clavesExistentesRG] = await pool.query(
-      "SELECT clave_elector, estado_norm, seccion_electoral_ubic, tipo_casilla, casilla FROM RG"
-    );
-    const claveAUbicacion = new Map();
-    for (const c of clavesExistentesRG) {
-      claveAUbicacion.set(c.clave_elector, {
-        key: `${c.estado_norm}|${c.seccion_electoral_ubic}|${c.tipo_casilla}|${c.casilla}`,
-        texto: `la sección ${c.seccion_electoral_ubic}, casilla ${c.casilla} (${c.estado_norm})`,
-      });
-    }
-
     const resumen = {
       filasLeidas: 0,
       sinResponsable: 0,
@@ -246,7 +212,6 @@ async function uploadRG(req, res) {
         otroEstado: 0,
         repetidaEnArchivo: 0,
         datosIncompletos: 0,
-        claveRepetida: 0,
       },
       avisos: { sexo: 0, correo: 0 },
       entidadUsuario: usuario.nacional ? "Todas" : usuario.entidad,
@@ -255,10 +220,7 @@ async function uploadRG(req, res) {
       cambios: [],
       segundos: 0,
     };
-    // Los errores a corregir se listan casi todos. Las filas de otras casas
-    // van con tope chico: con el archivo completo son 168 mil y no son un
-    // error, pasa siempre que alguien sube la plantilla entera. El contador
-    // las cuenta igual.
+    // Errores casi todos listados; filas de otras casas con tope chico (no son error, pasa siempre con el archivo completo).
     let listadosError = 0;
     let listadosAjenos = 0;
     const agregarDetalle = (fila, motivo, esAjena = false) => {
@@ -280,9 +242,7 @@ async function uploadRG(req, res) {
         });
     };
 
-    // ---------------------------------------------------------------
     // 1) leer + filtrar en memoria, e ir mandando lotes a la temporal
-    // ---------------------------------------------------------------
     progressManager.updateProgress({ progress: 0, speed: 0, estimatedRemaining: { minutes: 0, seconds: 0 } }, usuario.id);
 
     let lote = [];
@@ -301,18 +261,13 @@ async function uploadRG(req, res) {
       escritas += filas.length;
     };
 
-    // Cronometro propio para la velocidad: "arranque" incluye resolver el
-    // usuario, validar encabezados y consultar las casas (viajes a la base
-    // antes de leer una sola fila). Si se usa ese tiempo para medir bytes/s,
-    // la primera lectura infla el "tiempo transcurrido" con trabajo que no
-    // es lectura, y la ETA sale mucho mas alta de lo real.
+    // Cronometro propio para la velocidad: "arranque" incluye trabajo previo a leer, que inflaria la ETA.
     const inicioLectura = Date.now();
 
     for await (const f of filasDeHoja(req.file.path, HOJA_RG, {
       maxColumna: 40,
       desdeFila: filaEncabezado + 1,
-      // de acá sale la velocidad: una fila sin nada de la N en adelante ni
-      // siquiera se parsea
+      // De acá sale la velocidad: una fila sin nada de la N en adelante ni siquiera se parsea.
       filtroRapido: (xml) => TIENE_PERSONA.test(xml),
     })) {
       resumen.filasLeidas++;
@@ -344,26 +299,7 @@ async function uploadRG(req, res) {
         continue;
       }
 
-      // clave de elector repetida: esa persona ya es responsable de OTRA
-      // casilla (en la base, o en una fila anterior de este mismo archivo).
-      // No se mueve de lugar sola: se rechaza y se corrige a mano.
-      const miUbicacionRG = `${d.estado_norm}|${d.seccion_electoral_ubic}|${d.tipo_casilla}|${d.casilla}`;
-      const ubicacionPreviaRG = claveAUbicacion.get(d.clave_elector);
-      if (ubicacionPreviaRG && ubicacionPreviaRG.key !== miUbicacionRG) {
-        resumen.descartados.claveRepetida++;
-        agregarDetalle(
-          nro,
-          `la clave ${d.clave_elector} ya está asignada a ${ubicacionPreviaRG.texto}`
-        );
-        continue;
-      }
-      claveAUbicacion.set(d.clave_elector, {
-        key: miUbicacionRG,
-        texto: `la sección ${d.seccion_electoral_ubic}, casilla ${d.casilla} (${d.estado_norm})`,
-      });
-
-      // vigencia de INE, telefono y codigo postal son obligatorios: si falta
-      // alguno, o el telefono no son 10 digitos numericos, la fila no se sube.
+      // Vigencia, telefono y codigo postal son obligatorios; si falta alguno la fila no se sube.
       const motivosDatos = V.motivosDescarteDatos(d);
       if (motivosDatos.length) {
         resumen.descartados.datosIncompletos++;
@@ -393,8 +329,7 @@ async function uploadRG(req, res) {
         ...V.COLUMNAS_PERSONA.map((c) => d[c] ?? null),
       ]);
 
-      // Los lotes se escriben EN ORDEN (await adentro del for await): si una
-      // casilla viene repetida, la ultima del archivo es la que queda.
+      // Los lotes se escriben EN ORDEN: si una casilla viene repetida, la ultima del archivo es la que queda.
       if (lote.length >= TAMANO_LOTE) {
         await vaciarLote();
         if (Date.now() - ultimoAviso > 400) {
@@ -404,21 +339,7 @@ async function uploadRG(req, res) {
           const avance = f.totalBytes
             ? Math.round((f.bytesLeidos / f.totalBytes) * 95)
             : 0;
-          // El tiempo que falta se calcula con BYTES, no con filas: "escritas"
-          // son solo las filas de tu casa (una fraccion chica del archivo si
-          // tu entidad es pequeña), y comparar eso contra "filas que faltan
-          // LEER del archivo entero" mezclaba dos velocidades distintas -
-          // daba ETAs de varios minutos en cargas que terminaban en segundos.
-          // Con bytes, el % y la ETA miden lo mismo: cuanto queda por leer.
-          //
-          // Ademas: el PRIMER aviso sale contaminado por costos fijos que no
-          // son lectura (abrir la conexion a la base para el primer lote,
-          // arranque del motor). Medido: en una carga real, los primeros
-          // 0.46s leyeron a 2.4 MB/s pero el resto del archivo iba a 26.6
-          // MB/s - 11 veces mas rapido. Proyectar con esa primera muestra da
-          // una ETA absurda. Por eso no se manda ETA hasta pasado 1s desde
-          // que arranco la lectura: antes de eso, el frontend ya sabe mostrar
-          // solo el % y la velocidad, sin inventar un "faltan X" que no vale.
+          // ETA por BYTES leidos del archivo entero (no por filas propias), y recien despues de 1s para no arrancar con una muestra contaminada.
           let estimatedRemaining = { minutes: 0, seconds: 0 };
           if (transcurrido > 1) {
             const bytesPorSegundo = f.bytesLeidos / transcurrido;
@@ -440,34 +361,20 @@ async function uploadRG(req, res) {
 
     await vaciarLote();
 
-    // Ya se terminó de leer el archivo, pero falta escribir en la tabla
-    // definitiva (contar, insertar, actualizar) - con archivos chicos esto
-    // puede tardar mas que la lectura, y antes no tenia ningun aviso: la
-    // barra se quedaba muda hasta que saltaba directo al cartel final.
+    // Falta escribir en la tabla definitiva (puede tardar mas que la lectura), por eso este aviso intermedio.
     progressManager.updateProgress(
       { progress: 96, speed: "0.00", estimatedRemaining: { minutes: 0, seconds: 0 }, fase: "guardando" },
       usuario.id
     );
 
-    // ---------------------------------------------------------------
     // 2) contar y escribir
-    // ---------------------------------------------------------------
     const JOIN = `
       r.estado_norm = t.estado_norm
       AND r.seccion_electoral_ubic = t.seccion_electoral_ubic
       AND r.tipo_casilla = t.tipo_casilla
       AND r.casilla = t.casilla`;
 
-    // Si la casilla vino repetida en el archivo, gana la ultima. Antes esto
-    // era una subconsulta correlacionada dentro del INSERT y del UPDATE: se
-    // evaluaba UNA VEZ POR FILA sobre una temp_RG que, con varias cargas a la
-    // vez, tiene decenas de miles de filas. Medido: un INSERT de 5.000 filas
-    // llegaba a bloquear 28.000, y con 10 cargas simultaneas la base cortaba
-    // por "lock wait timeout".
-    //
-    // Ahora se resuelve ANTES, con una sola sentencia que borra las repetidas
-    // y deja la ultima. Y solo se ejecuta si de verdad hubo repetidas, cosa
-    // que ya sabemos de la lectura.
+    // Si la casilla vino repetida en el archivo, se borra antes de escribir (y no como subconsulta correlacionada: bloqueaba demasiado con varias cargas a la vez).
     if (resumen.descartados.repetidaEnArchivo > 0) {
       await pool.query(
         `DELETE vieja FROM temp_RG vieja
@@ -483,58 +390,12 @@ async function uploadRG(req, res) {
       );
     }
 
-    // Red de seguridad contra una carrera entre 2 cargas simultaneas: el
-    // chequeo de "clave repetida" de la lectura corre contra una FOTO de la
-    // base tomada al empezar a leer el archivo. Si OTRA carga, al mismo
-    // tiempo, confirmo esa misma clave en otro lugar mientras esta leia, el
-    // INSERT de abajo chocaria contra el UNIQUE KEY y tiraria abajo TODO el
-    // archivo. Por eso se re-chequea contra el estado actual justo antes de
-    // escribir, y se descarta solo esa fila (rarisimo, pero el archivo
-    // entero no puede depender de que nunca pase).
-    const [choquesClave] = await pool.query(
-      `SELECT t.fila_excel, r.seccion_electoral_ubic AS seccion_ya, r.casilla AS casilla_ya, r.estado_norm AS estado_ya
-       FROM temp_RG t
-       JOIN RG r ON r.clave_elector = t.clave_elector
-       WHERE t.carga_id = ? AND NOT (
-         r.estado_norm = t.estado_norm AND r.seccion_electoral_ubic = t.seccion_electoral_ubic
-         AND r.tipo_casilla = t.tipo_casilla AND r.casilla = t.casilla
-       )`,
-      [cargaId]
-    );
-    if (choquesClave.length) {
-      for (const c of choquesClave) {
-        resumen.descartados.claveRepetida++;
-        agregarDetalle(
-          c.fila_excel,
-          `la clave ya está asignada a la sección ${c.seccion_ya}, casilla ${c.casilla_ya} (${c.estado_ya})`
-        );
-      }
-      await pool.query(
-        `DELETE t FROM temp_RG t
-         JOIN RG r ON r.clave_elector = t.clave_elector
-         WHERE t.carga_id = ? AND NOT (
-           r.estado_norm = t.estado_norm AND r.seccion_electoral_ubic = t.seccion_electoral_ubic
-           AND r.tipo_casilla = t.tipo_casilla AND r.casilla = t.casilla
-         )`,
-        [cargaId]
-      );
-    }
-
-    // Escribir en RG desde varias cargas a la vez provoca interbloqueos: el
-    // INSERT...SELECT y el UPDATE toman candados sobre el indice unico y dos
-    // transacciones concurrentes se traban. InnoDB corta una y pide
-    // reintentarla ("try restarting transaction"), asi que eso hacemos. Medido:
-    // con 5 cargas simultaneas fallaban 2 de 5 sin esto.
+    // Cargas simultaneas en RG provocan interbloqueos (candados sobre el indice unico); por eso reintenta.
     let conteos, upd;
     for (let intento = 1; ; intento++) {
       try {
         conexion = await pool.getConnection();
-        // READ COMMITTED en vez del REPEATABLE READ por defecto: con el nivel
-        // por defecto, el INSERT...SELECT toma candados de RANGO sobre los
-        // indices y termina bloqueando filas de OTRAS cargas, aunque cada una
-        // trabaje sobre su propio carga_id. Medido: con 10 cargas a la vez
-        // daba "Lock wait timeout exceeded". Acá no hace falta repeatable
-        // read: cada carga solo lee lo suyo.
+        // READ COMMITTED en vez de REPEATABLE READ: evita que el INSERT...SELECT bloquee filas de otras cargas.
         await conexion.query("SET TRANSACTION ISOLATION LEVEL READ COMMITTED");
         await conexion.beginTransaction();
         ({ conteos, upd } = await escribir(conexion));
@@ -548,8 +409,7 @@ async function uploadRG(req, res) {
         }
         const trabado = e.code === "ER_LOCK_DEADLOCK" || e.code === "ER_LOCK_WAIT_TIMEOUT";
         if (!trabado || intento >= MAX_REINTENTOS) throw e;
-        // espera creciente y con un poco de azar, para que dos cargas trabadas
-        // entre si no vuelvan a chocar en el mismo instante
+        // Espera creciente y con azar, para que dos cargas trabadas no vuelvan a chocar en el mismo instante.
         const espera = 120 * intento + Math.floor(Math.random() * 180);
         console.warn(`RG: interbloqueo en el intento ${intento}, reintentando en ${espera} ms`);
         await new Promise((r) => setTimeout(r, espera));
@@ -579,8 +439,7 @@ async function uploadRG(req, res) {
       [usuario.casa, usuario.username, cargaId]
     );
 
-    // existentes: si cambio la persona se reescribe todo (vacios incluidos);
-    // si es la misma, lo que viene en blanco NO borra lo que ya estaba.
+    // Existentes: si cambio la persona se reescribe todo (vacios incluidos); si es la misma, lo en blanco no borra lo que ya estaba.
     const setsPersona = V.COLUMNAS_PERSONA.map(
       (c) =>
         `r.${c} = IF(r.clave_elector <> t.clave_elector, t.${c}, COALESCE(NULLIF(t.${c}, ''), r.${c}))`
@@ -607,9 +466,7 @@ async function uploadRG(req, res) {
       0
     );
 
-    // La carga ya está confirmada en RG: si limpiar la temporal falla por
-    // contención, no se puede tirar abajo una carga que salió bien. Quedan
-    // unas filas sueltas, que la próxima carga de ese usuario borra igual.
+    // La carga ya está confirmada: si falla limpiar la temporal no se tira abajo, queda para la próxima.
     try {
       await conexion.query("DELETE FROM temp_RG WHERE carga_id = ?", [cargaId]);
     } catch (e) {
