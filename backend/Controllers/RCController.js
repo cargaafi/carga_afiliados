@@ -123,6 +123,13 @@ const COLUMNAS_UBICACION = [
   "cabecera_local",
 ];
 
+// De las columnas A..M, estas 5 son la llave (definen el slot) y nunca
+// cambian en un UPDATE por lugar. El resto (circunscripcion, distrito,
+// cabeceras, etc.) no son parte de la llave y cualquier casa las puede
+// corregir, igual que las columnas de la persona.
+const LLAVE_UBICACION = ["estado_norm", "seccion_electoral_ubic", "tipo_casilla", "casilla", "cargo"];
+const COLUMNAS_UBICACION_LIBRES = COLUMNAS_UBICACION.filter((c) => !LLAVE_UBICACION.includes(c));
+
 // RC tiene una columna mas que RD/RG: Origen. Es dato de la persona (describe
 // al responsable, no al lugar), asi que se agrega a COLUMNAS_PERSONA y sigue
 // las mismas reglas de upsert: se reescribe si cambio la persona, no se
@@ -233,30 +240,13 @@ async function uploadRC(req, res) {
     const filaEncabezado = await filaDeEncabezado(req.file.path);
     const mapaCasas = await V.casasPorEntidad();
 
-    // Clave de elector unica en toda la tabla: una persona no puede ser
-    // responsable de dos casillas a la vez, ni de Propietario 1 Y 2 de la
-    // misma casilla (son 2 personas distintas). La ubicacion para este
-    // chequeo lleva el cargo, igual que la UNIQUE KEY real de la tabla:
-    // asi "re-subir el mismo slot" sigue permitido, pero "el mismo slot con
-    // otro cargo" se rechaza. Se precarga que clave esta en que lugar (de la
-    // base y de lo que se va aceptando de este mismo archivo).
-    const [clavesExistentesRC] = await pool.query(
-      "SELECT clave_elector, estado_norm, seccion_electoral_ubic, tipo_casilla, casilla, cargo FROM RC"
-    );
-    const claveAUbicacion = new Map();
-    for (const c of clavesExistentesRC) {
-      claveAUbicacion.set(c.clave_elector, {
-        key: `${c.estado_norm}|${c.seccion_electoral_ubic}|${c.tipo_casilla}|${c.casilla}|${c.cargo}`,
-        texto: `la sección ${c.seccion_electoral_ubic}, casilla ${c.casilla}, ${c.cargo} (${c.estado_norm})`,
-      });
-    }
-
     const resumen = {
       filasLeidas: 0,
       sinResponsable: 0,
       nuevos: 0,
       actualizados: 0,
       reemplazados: 0,
+      trasladados: 0,
       sinCambios: 0,
       descartados: {
         claveInvalida: 0,
@@ -264,7 +254,6 @@ async function uploadRC(req, res) {
         otroEstado: 0,
         repetidaEnArchivo: 0,
         datosIncompletos: 0,
-        claveRepetida: 0,
       },
       avisos: { sexo: 0, correo: 0 },
       entidadUsuario: usuario.nacional ? "Todas" : usuario.entidad,
@@ -362,24 +351,6 @@ async function uploadRC(req, res) {
         agregarDetalle(nro, V.motivoClaveInvalida(d.clave_elector));
         continue;
       }
-
-      // clave de elector repetida: esa persona ya es responsable de OTRA
-      // casilla (en la base, o en una fila anterior de este mismo archivo).
-      // No se mueve de lugar sola: se rechaza y se corrige a mano.
-      const miUbicacionRC = `${d.estado_norm}|${d.seccion_electoral_ubic}|${d.tipo_casilla}|${d.casilla}|${d.cargo}`;
-      const ubicacionPreviaRC = claveAUbicacion.get(d.clave_elector);
-      if (ubicacionPreviaRC && ubicacionPreviaRC.key !== miUbicacionRC) {
-        resumen.descartados.claveRepetida++;
-        agregarDetalle(
-          nro,
-          `la clave ${d.clave_elector} ya está asignada a ${ubicacionPreviaRC.texto}`
-        );
-        continue;
-      }
-      claveAUbicacion.set(d.clave_elector, {
-        key: miUbicacionRC,
-        texto: `la sección ${d.seccion_electoral_ubic}, casilla ${d.casilla}, ${d.cargo} (${d.estado_norm})`,
-      });
 
       // vigencia de INE, telefono, codigo postal y origen son obligatorios en
       // RC: si falta alguno, o el telefono no son 10 digitos numericos, la
@@ -503,17 +474,30 @@ async function uploadRC(req, res) {
       );
     }
 
-    // Red de seguridad contra una carrera entre 2 cargas simultaneas: el
-    // chequeo de "clave repetida" de la lectura corre contra una FOTO de la
-    // base tomada al empezar a leer el archivo. Si OTRA carga, al mismo
-    // tiempo, confirmo esa misma clave en otro lugar mientras esta leia, el
-    // INSERT de abajo chocaria contra el UNIQUE KEY y tiraria abajo TODO el
-    // archivo. Por eso se re-chequea contra el estado actual justo antes de
-    // escribir, y se descarta solo esa fila (rarisimo, pero el archivo
-    // entero no puede depender de que nunca pase).
-    const [choquesClaveRC] = await pool.query(
-      `SELECT t.fila_excel, r.seccion_electoral_ubic AS seccion_ya, r.casilla AS casilla_ya,
-              r.cargo AS cargo_ya, r.estado_norm AS estado_ya
+    // Si la misma persona vino 2 veces en el archivo apuntando a lugares
+    // distintos (traslado ambiguo), se queda con la ultima fila; las
+    // anteriores se cuentan igual que un lugar duplicado.
+    const [dupClave] = await pool.query(
+      `DELETE vieja FROM temp_RC vieja
+         JOIN temp_RC nueva
+           ON nueva.carga_id = vieja.carga_id
+          AND nueva.clave_elector = vieja.clave_elector
+          AND nueva.fila_excel > vieja.fila_excel
+       WHERE vieja.carga_id = ?`,
+      [cargaId]
+    );
+    resumen.descartados.repetidaEnArchivo += dupClave.affectedRows || 0;
+
+    // Traslados: filas cuya clave ya existe en RC en OTRO lugar. Se consulta
+    // en vivo (no una foto tomada al empezar a leer), por la misma razon que
+    // antes: una carrera entre 2 cargas simultaneas no puede tirar abajo todo
+    // el archivo.
+    const [candidatosTraslado] = await pool.query(
+      `SELECT t.fila_excel, t.clave_elector, t.estado_norm, t.seccion_electoral_ubic,
+              t.tipo_casilla, t.casilla, t.cargo,
+              r.id AS id_actual, r.estado_norm AS estado_actual,
+              r.seccion_electoral_ubic AS seccion_actual, r.casilla AS casilla_actual,
+              r.cargo AS cargo_actual
        FROM temp_RC t
        JOIN RC r ON r.clave_elector = t.clave_elector
        WHERE t.carga_id = ? AND NOT (
@@ -522,23 +506,50 @@ async function uploadRC(req, res) {
        )`,
       [cargaId]
     );
-    if (choquesClaveRC.length) {
-      for (const c of choquesClaveRC) {
-        resumen.descartados.claveRepetida++;
-        agregarDetalle(
-          c.fila_excel,
-          `la clave ya está asignada a la sección ${c.seccion_ya}, casilla ${c.casilla_ya}, ${c.cargo_ya} (${c.estado_ya})`
-        );
+
+    if (candidatosTraslado.length) {
+      // Cruzan de estado: ese traslado lo tiene que hacer Nacional. El resto
+      // se mueve: se borra la fila de origen y se deja que la fila de temp_RC
+      // siga el camino normal de mas abajo (si el destino esta libre entra
+      // como nueva, si ya tiene responsable lo reemplaza — igual que
+      // cualquier carga comun, no hace falta tratarlo distinto). Por eso no
+      // hace falta "reservar" nada: si 2 responsables se intercambian la
+      // casilla entre si, para cuando se procesa el segundo el origen del
+      // primero ya esta libre.
+      const filasAjenas = [];
+      const candidatas = [];
+      for (const f of candidatosTraslado) {
+        if (!usuario.nacional && f.estado_actual !== usuario.entidad_norm) filasAjenas.push(f);
+        else candidatas.push(f);
       }
-      await pool.query(
-        `DELETE t FROM temp_RC t
-         JOIN RC r ON r.clave_elector = t.clave_elector
-         WHERE t.carga_id = ? AND NOT (
-           r.estado_norm = t.estado_norm AND r.seccion_electoral_ubic = t.seccion_electoral_ubic
-           AND r.tipo_casilla = t.tipo_casilla AND r.casilla = t.casilla AND r.cargo = t.cargo
-         )`,
-        [cargaId]
-      );
+      if (filasAjenas.length) {
+        for (const f of filasAjenas) {
+          resumen.descartados.otroEstado++;
+          agregarDetalle(
+            f.fila_excel,
+            `la clave ${f.clave_elector} está en la sección ${f.seccion_actual}, casilla ${f.casilla_actual}, ${f.cargo_actual} (${f.estado_actual}) — ese traslado lo tiene que hacer Nacional`,
+            true
+          );
+        }
+        await pool.query(`DELETE FROM temp_RC WHERE carga_id = ? AND fila_excel IN (?)`, [
+          cargaId,
+          filasAjenas.map((f) => f.fila_excel),
+        ]);
+      }
+
+      if (candidatas.length) {
+        await pool.query(`DELETE FROM RC WHERE id IN (?)`, [candidatas.map((f) => f.id_actual)]);
+        for (const f of candidatas) {
+          resumen.cambios.push({
+            fila: f.fila_excel,
+            ubicacion: `${f.estado_norm} · sección ${f.seccion_electoral_ubic} · casilla ${f.casilla} · ${f.cargo}`,
+            texto: `se trasladó: sección ${f.seccion_actual}, casilla ${f.casilla_actual} (${f.estado_actual}) → sección ${f.seccion_electoral_ubic}, casilla ${f.casilla} (${f.estado_norm})`,
+          });
+        }
+        // Quedan en temp_RC: el INSERT/UPDATE de mas abajo las procesa como
+        // a cualquier otra fila (nueva si el destino estaba libre, reemplazo
+        // si ya tenia responsable).
+      }
     }
 
     // Mismo patron que RG: reintentos ante interbloqueo + READ COMMITTED.
@@ -590,8 +601,11 @@ async function uploadRC(req, res) {
     );
 
     // existentes: si cambio la persona se reescribe todo (vacios incluidos);
-    // si es la misma, lo que viene en blanco NO borra lo que ya estaba.
-    const setsPersona = COLUMNAS_PERSONA_RC.map(
+    // si es la misma, lo que viene en blanco NO borra lo que ya estaba. Las
+    // columnas de ubicacion que no son parte de la llave (cabecera, circuns-
+    // cripcion, distrito, etc.) se corrigen igual: cualquier casa las puede
+    // tocar, ya no quedan selladas para Nacional.
+    const setsPersona = [...COLUMNAS_PERSONA_RC, ...COLUMNAS_UBICACION_LIBRES].map(
       (c) =>
         `r.${c} = IF(r.clave_elector <> t.clave_elector, t.${c}, COALESCE(NULLIF(t.${c}, ''), r.${c}))`
     ).join(",\n        ");

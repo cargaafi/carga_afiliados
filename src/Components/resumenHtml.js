@@ -48,29 +48,29 @@ export function armarResumenHtml(r) {
   const a = r.avisos || {};
 
   // --- se cargaron ---
-  const cargados = (r.nuevos || 0) + (r.actualizados || 0) + (r.reemplazados || 0) + (r.sinCambios || 0);
+  const cargados = (r.nuevos || 0) + (r.actualizados || 0) + (r.reemplazados || 0) + (r.trasladados || 0) + (r.sinCambios || 0);
   let html = '';
   if (cargados) {
     html += encabezadoGrupo('Se cargaron', cargados, '#2e7d32');
     if (r.nuevos) html += fila('✅', '#2e7d32', 'nuevos', r.nuevos);
     if (r.actualizados) html += fila('🔄', SLATE, 'actualizados', r.actualizados);
     if (r.reemplazados) html += fila('👤', SLATE, 'con responsable reemplazado', r.reemplazados);
+    if (r.trasladados) html += fila('🔀', SLATE, 'trasladados a otro lugar', r.trasladados);
     if (r.sinCambios) html += fila('⏸️', '#78909C', 'sin cambios', r.sinCambios);
   }
 
   // --- no se cargaron ---
   const errores = (d.claveInvalida || 0) + (d.sinDistrito || 0) + (d.sinCasilla || 0) +
-    (d.repetidaEnArchivo || 0) + (d.datosIncompletos || 0) + (d.claveRepetida || 0);
+    (d.repetidaEnArchivo || 0) + (d.datosIncompletos || 0);
   const noCargados = errores + (d.otroEstado || 0);
   if (noCargados) {
     html += encabezadoGrupo('No se cargaron', noCargados, '#c62828');
     if (d.claveInvalida) html += fila('❌', '#c62828', 'problema con la clave de elector', d.claveInvalida);
-    if (d.claveRepetida) html += fila('❌', '#c62828', 'clave de elector ya asignada a otro lugar', d.claveRepetida);
     if (d.sinDistrito) html += fila('❌', '#c62828', 'sin estado o sin distrito', d.sinDistrito);
     if (d.sinCasilla) html += fila('❌', '#c62828', 'sin estado, sección o casilla', d.sinCasilla);
     if (d.datosIncompletos) html += fila('❌', '#c62828', 'falta vigencia, teléfono, código postal u origen', d.datosIncompletos);
     if (d.repetidaEnArchivo) html += fila('🔁', '#ef6c00', 'repetidas en el archivo (se tomó la última)', d.repetidaEnArchivo);
-    if (d.otroEstado) html += fila('🚫', '#ef6c00', 'corresponden a otras casas', d.otroEstado);
+    if (d.otroEstado) html += fila('🚫', '#ef6c00', 'corresponden a otras casas (o traslado que requiere Nacional)', d.otroEstado);
   }
 
   if (!cargados && !noCargados)

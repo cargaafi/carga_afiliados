@@ -365,26 +365,12 @@ async function uploadRD(req, res) {
     }
     for (const lista of casasPorEntidad.values()) lista.sort((a, b) => a - b);
 
-    // Clave de elector unica en toda la tabla: una persona no puede ser
-    // responsable de dos distritos a la vez. Se precarga que clave esta en
-    // que distrito (de la base y de lo que se va aceptando de este mismo
-    // archivo), para rechazar sin pisar nada.
-    const [clavesExistentes] = await pool.query(
-      "SELECT clave_elector, estado_norm, distrito_federal FROM RD"
-    );
-    const claveAUbicacion = new Map();
-    for (const c of clavesExistentes) {
-      claveAUbicacion.set(c.clave_elector, {
-        key: `${c.estado_norm}|${c.distrito_federal}`,
-        texto: `el distrito ${c.distrito_federal} (${c.estado_norm})`,
-      });
-    }
-
     const resumen = {
       filasLeidas: filas.length,
       nuevos: 0,
       actualizados: 0,
       reemplazados: 0,
+      trasladados: 0,
       sinCambios: 0,
       sinResponsable: 0,
       descartados: {
@@ -392,7 +378,6 @@ async function uploadRD(req, res) {
         sinDistrito: 0,
         otroEstado: 0,
         datosIncompletos: 0,
-        claveRepetida: 0,
       },
       avisos: { sexo: 0, correo: 0 },
       entidadUsuario: usuario.nacional ? "Todas" : usuario.entidad,
@@ -442,6 +427,73 @@ async function uploadRD(req, res) {
     conexion = await pool.getConnection();
     await conexion.beginTransaction();
 
+    // Aplica el UPDATE de una fila contra una fila existente (por lugar, o
+    // por clave si es un traslado).
+    async function aplicarUpdate(fila, d, actual, esTraslado, origenTraslado) {
+      const cambioPersona = String(actual.clave_elector ?? "") !== d.clave_elector;
+      const sets = [];
+      const valores = [];
+      const camposCambiados = [];
+
+      if (cambioPersona) {
+        // Responsable distinto: se reescribe el bloque entero, vacios incluidos,
+        // para que el nuevo no herede telefono/correo del anterior.
+        for (const col of COLUMNAS_PERSONA) {
+          sets.push(`${col} = ?`);
+          valores.push(d[col] ?? null);
+        }
+      } else {
+        // Mismo responsable: lo que viene en blanco no pisa lo que ya estaba.
+        for (const col of COLUMNAS_PERSONA) {
+          const nuevo = d[col];
+          if (nuevo === null || nuevo === "") continue;
+          if (String(actual[col] ?? "") === String(nuevo)) continue;
+          sets.push(`${col} = ?`);
+          valores.push(nuevo);
+          camposCambiados.push(NOMBRE_CAMPO[col] || col);
+        }
+      }
+
+      // A..M: cualquier casa las puede corregir (antes solo Nacional).
+      for (const col of COLUMNAS_INE) {
+        const nuevo = d[col];
+        if (nuevo === null || nuevo === "") continue;
+        if (String(actual[col] ?? "") === String(nuevo)) continue;
+        sets.push(`${col} = ?`);
+        valores.push(nuevo);
+      }
+
+      if (!sets.length) {
+        resumen.sinCambios++;
+        return;
+      }
+
+      sets.push("casa_carga = ?", "usuario_subida = ?");
+      valores.push(usuario.casa, usuario.username, actual.id);
+      await conexion.query(`UPDATE RD SET ${sets.join(", ")} WHERE id = ?`, valores);
+
+      if (esTraslado) {
+        resumen.trasladados++;
+        agregarCambio(
+          fila,
+          d,
+          `se trasladó desde el distrito ${origenTraslado.distrito_federal} (${origenTraslado.estado_norm}) ` +
+            `y reemplazó al responsable que estaba en el distrito ${d.distrito_federal} (${d.estado_norm}): ` +
+            `${nombreCompleto(actual)} → ${nombreCompleto(d)}`
+        );
+      } else if (cambioPersona) {
+        resumen.reemplazados++;
+        agregarCambio(
+          fila,
+          d,
+          `cambió el responsable: ${nombreCompleto(actual)} → ${nombreCompleto(d)}`
+        );
+      } else {
+        resumen.actualizados++;
+        agregarCambio(fila, d, `se actualizó ${camposCambiados.join(", ")}`);
+      }
+    }
+
     for (const fila of filas) {
       const d = fila.datos;
 
@@ -485,24 +537,6 @@ async function uploadRD(req, res) {
         continue;
       }
 
-      // clave de elector repetida: esa persona ya es responsable de OTRO
-      // distrito (en la base, o en una fila anterior de este mismo archivo).
-      // No se mueve de lugar sola: se rechaza y se corrige a mano.
-      const miUbicacionRD = `${d.estado_norm}|${d.distrito_federal}`;
-      const ubicacionPrevia = claveAUbicacion.get(d.clave_elector);
-      if (ubicacionPrevia && ubicacionPrevia.key !== miUbicacionRD) {
-        resumen.descartados.claveRepetida++;
-        agregarDetalle(
-          fila,
-          `la clave ${d.clave_elector} ya está asignada a ${ubicacionPrevia.texto}`
-        );
-        continue;
-      }
-      claveAUbicacion.set(d.clave_elector, {
-        key: miUbicacionRD,
-        texto: `el distrito ${d.distrito_federal} (${d.estado_norm})`,
-      });
-
       // vigencia de INE, telefono y codigo postal son obligatorios: si falta
       // alguno, o el telefono no son 10 digitos numericos, la fila no se sube.
       const anio = d.vigencia_ine;
@@ -544,31 +578,60 @@ async function uploadRD(req, res) {
       }
       if (motivosAviso.length) agregarAviso(fila, d, motivosAviso.join(" · "));
 
-      const [existentes] = await conexion.query(
-        "SELECT * FROM RD WHERE estado_norm = ? AND distrito_federal = ? LIMIT 1",
-        [d.estado_norm, d.distrito_federal]
+      // Buscar primero por clave de elector: es el dato que identifica a la
+      // persona sin ambiguedad. Se consulta en vivo (no una foto tomada al
+      // empezar), asi que tambien ve lo que insertaron filas anteriores de
+      // este mismo archivo, y cualquier otra carga que haya terminado mientras
+      // esta corria.
+      const [porClave] = await conexion.query(
+        "SELECT * FROM RD WHERE clave_elector = ? LIMIT 1",
+        [d.clave_elector]
       );
 
-      if (!existentes.length) {
-        // Red de seguridad contra una carrera entre 2 cargas simultaneas: el
-        // chequeo de arriba corre contra una FOTO de la base tomada al
-        // empezar. Si OTRA carga confirmo esa misma clave en otro distrito
-        // mientras esta se procesaba, este INSERT chocaria contra el UNIQUE
-        // KEY y tiraria abajo TODA la transaccion (las 149 filas anteriores
-        // incluidas). Se re-chequea contra el estado actual justo antes.
-        const [chequeoVivo] = await conexion.query(
-          "SELECT estado_norm, distrito_federal FROM RD WHERE clave_elector = ? LIMIT 1",
-          [d.clave_elector]
-        );
-        if (chequeoVivo.length) {
-          resumen.descartados.claveRepetida++;
+      let actual = porClave[0] || null;
+      let origenTraslado = null;
+
+      if (actual) {
+        const esTraslado =
+          actual.estado_norm !== d.estado_norm ||
+          Number(actual.distrito_federal) !== Number(d.distrito_federal);
+
+        // La persona esta en un estado que no es el de esta casa: ese
+        // traslado cruza de casa y lo tiene que resolver Nacional.
+        if (esTraslado && !usuario.nacional && actual.estado_norm !== usuario.entidad_norm) {
+          resumen.descartados.otroEstado++;
           agregarDetalle(
             fila,
-            `la clave ${d.clave_elector} ya está asignada a el distrito ${chequeoVivo[0].distrito_federal} (${chequeoVivo[0].estado_norm})`
+            `la clave ${d.clave_elector} está en el distrito ${actual.distrito_federal} (${actual.estado_norm}) — ese traslado lo tiene que hacer Nacional`,
+            true
           );
           continue;
         }
 
+        if (esTraslado) {
+          // Se libera el distrito de origen y la fila sigue el mismo camino
+          // que cualquier otra: si el destino ya tiene responsable, se lo
+          // reemplaza (igual que un reemplazo comun); si esta libre, entra
+          // como nueva. No hace falta "reservar" nada: para cuando se
+          // procese la fila de otra persona que a su vez se mueve a este
+          // mismo origen (un intercambio entre 2), ya esta libre.
+          origenTraslado = { distrito_federal: actual.distrito_federal, estado_norm: actual.estado_norm };
+          await conexion.query("DELETE FROM RD WHERE id = ?", [actual.id]);
+          actual = null;
+        }
+      }
+
+      if (!actual) {
+        // ¿Hay alguien mas en ese distrito? (reemplazo de responsable, o el
+        // destino de un traslado que ya tenia otro responsable)
+        const [porLugar] = await conexion.query(
+          "SELECT * FROM RD WHERE estado_norm = ? AND distrito_federal = ? LIMIT 1",
+          [d.estado_norm, d.distrito_federal]
+        );
+        actual = porLugar[0] || null;
+      }
+
+      if (!actual) {
         const columnas = [...COLUMNAS_INE, ...COLUMNAS_PERSONA, "casa_carga", "usuario_subida"];
         const valores = columnas.map((col) => {
           if (col === "casa_carga") return usuario.casa;
@@ -579,66 +642,20 @@ async function uploadRD(req, res) {
           `INSERT INTO RD (${columnas.join(", ")}) VALUES (${columnas.map(() => "?").join(", ")})`,
           valores
         );
-        resumen.nuevos++;
+        if (origenTraslado) {
+          resumen.trasladados++;
+          agregarCambio(
+            fila,
+            d,
+            `se trasladó: distrito ${origenTraslado.distrito_federal} (${origenTraslado.estado_norm}) → distrito ${d.distrito_federal} (${d.estado_norm})`
+          );
+        } else {
+          resumen.nuevos++;
+        }
         continue;
       }
 
-      const actual = existentes[0];
-      const cambioPersona = String(actual.clave_elector ?? "") !== d.clave_elector;
-      const sets = [];
-      const valores = [];
-      const camposCambiados = [];
-
-      if (cambioPersona) {
-        // Responsable distinto: se reescribe el bloque entero, vacios incluidos,
-        // para que el nuevo no herede telefono/correo del anterior.
-        for (const col of COLUMNAS_PERSONA) {
-          sets.push(`${col} = ?`);
-          valores.push(d[col] ?? null);
-        }
-      } else {
-        // Mismo responsable: lo que viene en blanco no pisa lo que ya estaba.
-        for (const col of COLUMNAS_PERSONA) {
-          const nuevo = d[col];
-          if (nuevo === null || nuevo === "") continue;
-          if (String(actual[col] ?? "") === String(nuevo)) continue;
-          sets.push(`${col} = ?`);
-          valores.push(nuevo);
-          camposCambiados.push(NOMBRE_CAMPO[col] || col);
-        }
-      }
-
-      // A..M siguen selladas salvo que las corrija el usuario Nacional
-      if (usuario.nacional) {
-        for (const col of COLUMNAS_INE) {
-          const nuevo = d[col];
-          if (nuevo === null || nuevo === "") continue;
-          if (String(actual[col] ?? "") === String(nuevo)) continue;
-          sets.push(`${col} = ?`);
-          valores.push(nuevo);
-        }
-      }
-
-      if (!sets.length) {
-        resumen.sinCambios++;
-        continue;
-      }
-
-      sets.push("casa_carga = ?", "usuario_subida = ?");
-      valores.push(usuario.casa, usuario.username, actual.id);
-      await conexion.query(`UPDATE RD SET ${sets.join(", ")} WHERE id = ?`, valores);
-
-      if (cambioPersona) {
-        resumen.reemplazados++;
-        agregarCambio(
-          fila,
-          d,
-          `cambió el responsable: ${nombreCompleto(actual)} → ${nombreCompleto(d)}`
-        );
-      } else {
-        resumen.actualizados++;
-        agregarCambio(fila, d, `se actualizó ${camposCambiados.join(", ")}`);
-      }
+      await aplicarUpdate(fila, d, actual, !!origenTraslado, origenTraslado);
     }
 
     await conexion.commit();
